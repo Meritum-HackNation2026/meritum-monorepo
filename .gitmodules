@@ -38,3 +38,7 @@
 	path = marketing
 	url = git@github.com:Meritum-HackNation2026/meritum-marketing.git
 	branch = main
+[submodule "docs"]
+	path = docs
+	url = git@github.com:Meritum-HackNation2026/meritum-docs.git
+	branch = main

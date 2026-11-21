@@ -3,7 +3,7 @@
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 git submodule update --init --remote --merge
-git add design-system infra org-profile core backend worker frontend mocks extension marketing
+git add design-system infra org-profile core backend worker frontend mocks extension marketing docs
 if git diff --cached --quiet; then
   echo "Submoduły są aktualne."
   exit 0
