@@ -103,7 +103,7 @@ Są dwie ścieżki. Żadna nie wymaga pomocy zespołu.
 
 - Formularz WWW: [meritum.gburek.app](https://meritum.gburek.app). Wklej tekst albo link i kliknij „Sprawdź”.
 - Discord: [zainstaluj „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396), potem `/sprawdz` albo „Sprawdź w Meritum” w menu wiadomości.
-- Makieta Discorda (mocks/001, główna ścieżka obok formularza): adres pojawi się w tabeli makiet wyżej, gdy makieta będzie wdrożona.
+- Makieta Discorda (mocks/001, [meritum-mocks#12](https://github.com/Meritum-HackNation2026/meritum-mocks/issues/12), główna ścieżka obok formularza): adres pojawi się w tabeli makiet wyżej, gdy makieta będzie wdrożona.
 - Wtyczka Chrome (opcjonalnie, poniżej 2 minut): pobierz artefakt `meritum-extension-prd` z [ostatniego przebiegu CI na `main`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess), rozpakuj, otwórz `chrome://extensions`, włącz „Tryb dewelopera”, kliknij „Załaduj rozpakowane” i wskaż katalog. Przycisk „Sprawdź” pojawi się pod postami na makietach platform.
 
 ### Lokalnie jednym poleceniem
@@ -155,21 +155,21 @@ Lokalnie, na stubach, nic nie opuszcza komputera.
 
 ### Bramki przed modelem
 
-| Bramka | Dostawca | Region | Gdy wyłączona |
-|---|---|---|---|
-| Maskowanie danych osobowych (DLP) | Google Sensitive Data Protection | UE | działają tylko wzorce telefonu, e-maila i PESEL-u; log zapisuje pominięcie bramki |
-| Klasyfikator wstrzyknięć | Google Model Armor albo Cloudflare Workers AI | UE albo globalnie | działają wzorce PL/EN z meritum-core, treść użytkownika i źródeł trafia do modelu wyłącznie jako dane, a log zapisuje pominięcie bramki |
-| Reranker | jeszcze brak (ADR-14 przewiduje dostawcę w UE) | brak | wyniki wyszukiwania zostają w kolejności z wyszukiwarki |
+| Bramka | Dostawca | Region | Koszt | Gdy wyłączona |
+|---|---|---|---|---|
+| Maskowanie danych osobowych (DLP) | Google Sensitive Data Protection | UE | [cennik inspekcji treści](https://cloud.google.com/sensitive-data-protection/pricing) | działają tylko wzorce telefonu, e-maila i PESEL-u; log zapisuje pominięcie bramki |
+| Klasyfikator wstrzyknięć | Google Model Armor albo Cloudflare Workers AI | UE albo globalnie | [Model Armor](https://cloud.google.com/security-command-center/pricing), [Workers AI](https://developers.cloudflare.com/workers-ai/platform/pricing/) | działają wzorce PL/EN z meritum-core, treść użytkownika i źródeł trafia do modelu wyłącznie jako dane, a log zapisuje pominięcie bramki |
+| Reranker | jeszcze brak (ADR-14 przewiduje dostawcę w UE) | brak | 0 zł | wyniki wyszukiwania zostają w kolejności z wyszukiwarki |
 
 ### Koszty, limity i zachowanie pod obciążeniem (ADR-18)
 
-Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord` (US-OBS-02). Koszt 1 000 zapytań, koszt utrzymania kanałów, koszt i limity transkrypcji oraz odsetek trafień w pamięci wyników podajemy tylko zmierzone naszym skryptem ewaluacji (meritum-worker, `evals/`); do czasu pomiaru te wiersze są puste:
+Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord` (US-OBS-02). Koszt 1 000 zapytań, koszt utrzymania kanałów, koszt i limity transkrypcji oraz odsetek trafień w pamięci wyników podajemy tylko zmierzone naszym skryptem ewaluacji (meritum-worker, `evals/`); do czasu pomiaru zostają z cennikiem dostawcy zamiast liczby:
 
 | Pozycja | Wartość |
 |---|---|
-| Koszt 1 000 zapytań (model, embeddingi, bramki, wyszukiwarka) | do pomiaru |
+| Koszt 1 000 zapytań (model, embeddingi, bramki, wyszukiwarka) | do pomiaru; składowe: [Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/pricing) i bramki wyżej |
 | Utrzymanie kanałów: WWW, wtyczka, Discord | do pomiaru |
-| Transkrypcja: koszt, limit długości, retencja nagrań | do pomiaru |
+| Transkrypcja nagrań | Google Speech-to-Text v2 w UE, [cennik za minutę](https://cloud.google.com/speech-to-text/pricing); nagranie do 20 MiB i 10 minut; plik i wynik usuwa po 30 dniach godzinny przebieg retencji |
 | Odsetek trafień w pamięci wyników | do pomiaru |
 
 Przy dużym ruchu: sprawdzenia idą przez kolejkę DBOS z limitem współbieżności, API liczy limity na IP, kanał i region (`MERITUM_CHECKS_PER_*_PER_MINUTE`) i próg oczekujących sprawdzeń (`MERITUM_MAX_PENDING_CHECKS`), a ponad limitem odpowiada HTTP 429 z `Retry-After` i komunikatem, nigdy werdyktem. Awaria albo brak klucza dostawcy kończy się stanem „Problem techniczny”, a nie pozornym wynikiem.
