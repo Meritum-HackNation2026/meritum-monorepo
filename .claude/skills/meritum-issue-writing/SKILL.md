@@ -122,7 +122,8 @@ Every issue gets exactly one of each group, except `area`, which may repeat:
   (the product document's domains; story prefix SPR/DST → checks, WTY → channels, ZRD → evidence,
   KOR → corpus, BEZ → security, MOD → moderation, OBS → observability, WDR → deploy, POW → notifications)
 - `size: S` (a few hours), `size: M` (about half a day), `size: L` (more: split it unless it cannot be split)
-- `priority: mvp | if time | after hackathon` (the story's priority; take the highest of the covered stories)
+- `priority: mvp | if time | after hackathon` (the story's priority; take the highest of the covered stories,
+  unless the issue covers only an optional part of an MVP story: then say why in Notes)
 
 `agent`, `status: in progress|in review|blocked` and `review: …` are set by the claiming and
 review skills, never when filing. The label set is defined in `scripts/setup-labels.sh`.
