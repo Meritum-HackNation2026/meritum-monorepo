@@ -4,6 +4,8 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 
 ## Działające środowiska
 
+### Aplikacja webowa i API
+
 | Nazwa | Wersja | Przeznaczenie | Link |
 |---|---|---|---|
 | Aplikacja webowa | prd | aplikacja dla obywateli (bootstrap: stan API; docelowo formularz sprawdzania twierdzeń) | [meritum.gburek.app](https://meritum.gburek.app) |
@@ -12,6 +14,11 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 | API | dev | dokumentacja OpenAPI (Swagger UI) | [meritum-dev.gburek.app/api/docs](https://meritum-dev.gburek.app/api/docs) |
 | API: stan | prd | health: API, baza danych i środowisko | [meritum.gburek.app/api/v1/health](https://meritum.gburek.app/api/v1/health) |
 | API: stan | dev | health: API, baza danych i środowisko | [meritum-dev.gburek.app/api/v1/health](https://meritum-dev.gburek.app/api/v1/health) |
+
+### Makiety platform
+
+| Nazwa | Wersja | Przeznaczenie | Link |
+|---|---|---|---|
 | Makieta X | prd | makieta platformy do demo wtyczki | [meritum-x.gburek.app](https://meritum-x.gburek.app) |
 | Makieta X | dev | makieta platformy do demo wtyczki | [meritum-x-dev.gburek.app](https://meritum-x-dev.gburek.app) |
 | Makieta Facebook | prd | makieta platformy do demo wtyczki | [meritum-facebook.gburek.app](https://meritum-facebook.gburek.app) |
@@ -22,6 +29,11 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 | Makieta Reddit | dev | makieta platformy do demo wtyczki | [meritum-reddit-dev.gburek.app](https://meritum-reddit-dev.gburek.app) |
 | Makieta TikTok | prd | makieta platformy do demo wtyczki | [meritum-tiktok.gburek.app](https://meritum-tiktok.gburek.app) |
 | Makieta TikTok | dev | makieta platformy do demo wtyczki | [meritum-tiktok-dev.gburek.app](https://meritum-tiktok-dev.gburek.app) |
+
+### Wtyczka Chrome
+
+| Nazwa | Wersja | Przeznaczenie | Link |
+|---|---|---|---|
 | Wtyczka Chrome | prd | zip do załadowania w chrome://extensions (artefakt `meritum-extension-prd` w przebiegu CI) | [przebiegi CI na `main`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess) |
 | Wtyczka Chrome | dev | zip do załadowania w chrome://extensions (artefakt `meritum-extension-dev` w przebiegu CI) | [przebiegi CI na `develop`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Adevelop+is%3Asuccess) |
 
