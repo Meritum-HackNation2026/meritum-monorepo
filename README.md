@@ -2,6 +2,31 @@
 
 Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (HackNation 2026, konkurs MSZ „Prawdowid”). Samo nie zawiera kodu produktu. Łączy pozostałe repozytoria organizacji jako submoduły git, przypięte do konkretnych commitów.
 
+## Działające środowiska
+
+| Nazwa | Wersja | Przeznaczenie | Link |
+|---|---|---|---|
+| Aplikacja webowa | prd | aplikacja dla obywateli (bootstrap: stan API; docelowo formularz sprawdzania twierdzeń) | [meritum.gburek.app](https://meritum.gburek.app) |
+| Aplikacja webowa | dev | aplikacja dla obywateli (bootstrap: stan API; docelowo formularz sprawdzania twierdzeń) | [meritum-dev.gburek.app](https://meritum-dev.gburek.app) |
+| API | prd | dokumentacja OpenAPI (Swagger UI) | [meritum.gburek.app/api/docs](https://meritum.gburek.app/api/docs) |
+| API | dev | dokumentacja OpenAPI (Swagger UI) | [meritum-dev.gburek.app/api/docs](https://meritum-dev.gburek.app/api/docs) |
+| API: stan | prd | health: API, baza danych i środowisko | [meritum.gburek.app/api/v1/health](https://meritum.gburek.app/api/v1/health) |
+| API: stan | dev | health: API, baza danych i środowisko | [meritum-dev.gburek.app/api/v1/health](https://meritum-dev.gburek.app/api/v1/health) |
+| Makieta X | prd | makieta platformy do demo wtyczki | [meritum-x.gburek.app](https://meritum-x.gburek.app) |
+| Makieta X | dev | makieta platformy do demo wtyczki | [meritum-x-dev.gburek.app](https://meritum-x-dev.gburek.app) |
+| Makieta Facebook | prd | makieta platformy do demo wtyczki | [meritum-facebook.gburek.app](https://meritum-facebook.gburek.app) |
+| Makieta Facebook | dev | makieta platformy do demo wtyczki | [meritum-facebook-dev.gburek.app](https://meritum-facebook-dev.gburek.app) |
+| Makieta Instagram | prd | makieta platformy do demo wtyczki | [meritum-instagram.gburek.app](https://meritum-instagram.gburek.app) |
+| Makieta Instagram | dev | makieta platformy do demo wtyczki | [meritum-instagram-dev.gburek.app](https://meritum-instagram-dev.gburek.app) |
+| Makieta Reddit | prd | makieta platformy do demo wtyczki | [meritum-reddit.gburek.app](https://meritum-reddit.gburek.app) |
+| Makieta Reddit | dev | makieta platformy do demo wtyczki | [meritum-reddit-dev.gburek.app](https://meritum-reddit-dev.gburek.app) |
+| Makieta TikTok | prd | makieta platformy do demo wtyczki | [meritum-tiktok.gburek.app](https://meritum-tiktok.gburek.app) |
+| Makieta TikTok | dev | makieta platformy do demo wtyczki | [meritum-tiktok-dev.gburek.app](https://meritum-tiktok-dev.gburek.app) |
+| Wtyczka Chrome | prd | zip do załadowania w chrome://extensions (artefakt `meritum-extension-prd` w przebiegu CI) | [przebiegi CI na `main`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess) |
+| Wtyczka Chrome | dev | zip do załadowania w chrome://extensions (artefakt `meritum-extension-dev` w przebiegu CI) | [przebiegi CI na `develop`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Adevelop+is%3Asuccess) |
+
+`prd` wdraża się z gałęzi `main`, `dev` z gałęzi `develop`. Worker DBOS nie ma publicznego adresu; to, że działa, widać po zadaniu `ping` w deployu API.
+
 ## Nawigacja
 
 | Katalog | Repozytorium | Zawartość |
@@ -10,19 +35,20 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 | `worker/` | [meritum-worker](https://github.com/Meritum-HackNation2026/meritum-worker) | workery DBOS do długich operacji w tle, na PostgreSQL |
 | `core/` | [meritum-core](https://github.com/Meritum-HackNation2026/meritum-core) | kod wspólny backendu i workerów: kontrakty zadań, porty, adaptery |
 | `frontend/` | [meritum-frontend](https://github.com/Meritum-HackNation2026/meritum-frontend) | aplikacja webowa (React, pnpm), serwowana przez nginx, który przekazuje `/api` do backendu |
-| `design-system/` | [meritum-design-system](https://github.com/Meritum-HackNation2026/meritum-design-system) | dokument produktowy, kontrakty domenowe, system projektowy, teksty, makiety platform do demo |
+| `extension/` | [meritum-extension](https://github.com/Meritum-HackNation2026/meritum-extension) | wtyczka Chrome MV3 (WXT, React): przycisk „Sprawdź” pod postami |
+| `mocks/` | [meritum-mocks](https://github.com/Meritum-HackNation2026/meritum-mocks) | makiety X, Facebooka, Instagrama, Reddita i TikToka z małym backendem w Hono |
+| `marketing/` | [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing) | deck, film i grafiki na konkurs MSZ |
+| `design-system/` | [meritum-design-system](https://github.com/Meritum-HackNation2026/meritum-design-system) | dokument produktowy, kontrakty domenowe, system projektowy, teksty, źródłowe makiety platform |
 | `infra/` | [meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra) | runnery GitHub Actions (GCP i dellpromaxgb10) oraz wspólna platforma na dellpromaxgb10: PostgreSQL, gateway, trasy Cloudflare |
 | `org-profile/` | [.github](https://github.com/Meritum-HackNation2026/.github) | publiczny profil organizacji na GitHubie (`profile/README.md`) |
 | `scripts/` | (to repozytorium) | skrypty pomocnicze |
 
-Repozytoria założone, jeszcze puste (dostaną submoduł po pierwszym commicie): [meritum-extension](https://github.com/Meritum-HackNation2026/meritum-extension) (wtyczka Chrome), [meritum-mocks](https://github.com/Meritum-HackNation2026/meritum-mocks) (makiety platform do demo wtyczki), [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing) (pitch deck, film, materiały konkursowe).
+## Infrastruktura środowisk
 
-## Środowiska
-
-| Środowisko | Gałąź | Adres | Kontenery na dellpromaxgb10 | Schematy w bazie `meritum` |
-|---|---|---|---|---|
-| dev | `develop` | https://meritum-dev.gburek.app | `meritum-web-dev`, `meritum-api-dev`, `meritum-worker-dev` | `api_dev`, `worker_dev` |
-| prd | `main` | https://meritum.gburek.app | `meritum-web-prd`, `meritum-api-prd`, `meritum-worker-prd` | `api_prd`, `worker_prd` |
+| Środowisko | Gałąź | Kontenery na dellpromaxgb10 | Schematy w bazie `meritum` |
+|---|---|---|---|
+| dev | `develop` | `meritum-web-dev`, `meritum-api-dev`, `meritum-worker-dev`, `meritum-mocks-dev` | `api_dev`, `worker_dev`, `mocks_dev` |
+| prd | `main` | `meritum-web-prd`, `meritum-api-prd`, `meritum-worker-prd`, `meritum-mocks-prd` | `api_prd`, `worker_prd`, `mocks_prd` |
 
 Wszystkie środowiska dzielą jeden kontener PostgreSQL (`meritum-postgres`, pgvector i pg_trgm). Każda aplikacja w każdym środowisku ma własną rolę, która widzi tylko swój schemat. Schemat workera trzyma też tabele systemowe DBOS, a rola API ma do nich dostęp, żeby zlecać zadania. Szczegóły w README meritum-infra.
 
@@ -31,7 +57,8 @@ Wszystkie środowiska dzielą jeden kontener PostgreSQL (`meritum-postgres`, pgv
 Każde repo aplikacji ma `.github/workflows/ci.yml` z jednym uruchomieniem na commit:
 
 - CI (lint, typy, testy, build) działa na runnerach GCP z etykietą `meritum`, na każdej gałęzi.
-- CD działa na runnerze `dellpromaxgb10`, tylko dla `develop` (dev) i `main` (prd), po zielonym CI. Deploy buduje obraz na hoście (ARM64), podmienia kontener i sprawdza go: API odpowiada na `/api/v1/health` i przepuszcza zadanie `ping` przez workera, frontend odpowiada przez gateway pod swoim adresem.
+- CD działa na runnerze `dellpromaxgb10`, tylko dla `develop` (dev) i `main` (prd), po zielonym CI. Deploy buduje obraz na hoście (ARM64), podmienia kontener i sprawdza go: API odpowiada na `/api/v1/health` i przepuszcza zadanie `ping` przez workera, frontend i makiety odpowiadają przez gateway pod swoimi adresami.
+- Wtyczka nie ma serwera: na `develop` i `main` CI buduje zip z adresem API danego środowiska i zostawia go jako artefakt przebiegu. Marketing nie ma CI.
 
 Zmiany idą przez PR do `develop`, wydanie przez PR `develop` → `main`. Nie pushuj bezpośrednio do `develop` ani `main`. Organizacja jest na planie Free, który nie chroni gałęzi w repozytoriach prywatnych, więc pilnujemy tego sami. Gałąź funkcji usuwaj po merge'u (`gh pr merge --delete-branch`). Automatyczne usuwanie gałęzi jest wyłączone, bo skasowałoby też `develop` po PR `develop` → `main`.
 
@@ -55,7 +82,7 @@ Submoduł wskazuje konkretny commit, a nie gałąź. Żeby przesunąć wszystkie
 
 ```bash
 git submodule update --remote --merge
-git add design-system infra org-profile core backend worker frontend
+git add design-system infra org-profile core backend worker frontend mocks extension marketing
 git commit -m "Zaktualizuj submoduły"
 ```
 
