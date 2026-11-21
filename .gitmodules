@@ -1,0 +1,12 @@
+[submodule "design-system"]
+	path = design-system
+	url = git@github.com:Meritum-HackNation2026/meritum-design-system.git
+	branch = main
+[submodule "infra"]
+	path = infra
+	url = git@github.com:Meritum-HackNation2026/meritum-infra.git
+	branch = main
+[submodule "org-profile"]
+	path = org-profile
+	url = git@github.com:Meritum-HackNation2026/.github.git
+	branch = main
