@@ -1,7 +1,9 @@
 # Meritum: everything on one machine with one command (from the monorepo root,
 # after `git submodule update --init`):
 #
+#   cp .env.example .env   # optional: keys; without it everything runs on stubs
 #   docker compose up --build
+#   scripts/smoke.sh        # optional local smoke test (never in CI)
 #
 #   http://localhost:8080        web app (meritum-frontend; /api goes to the API)
 #   http://localhost:8080/api/docs  API docs
@@ -17,6 +19,16 @@
 name: meritum
 
 x-db-url: &db-url postgresql://meritum:meritum@db:5432/meritum
+
+# Keys and switches from .env (copy .env.example); without the file everything
+# runs on stubs and the readiness check names what is missing.
+x-env-file: &env-file
+  - path: .env
+    required: false
+
+# Uploaded audio and images (BlobStore, filesystem adapter, ADR-31): one volume
+# shared by the API and the worker.
+x-files: &files files:/var/lib/meritum/files
 
 services:
   db:
@@ -42,10 +54,20 @@ services:
     build:
       context: worker
       ssh: [default]
+    env_file: *env-file
     environment:
       MERITUM_ENV: local
       MERITUM_DBOS_URL: *db-url
       MERITUM_DBOS_SCHEMA: worker_local
+      MERITUM_DATABASE_PROVIDER: postgres
+      MERITUM_DATABASE_URL: *db-url
+      MERITUM_BLOB_PROVIDER: filesystem
+      MERITUM_BLOB_DIRECTORY: /var/lib/meritum/files
+      MERITUM_LLM_PROVIDER: ${MERITUM_LLM_PROVIDER:-stub}
+      MERITUM_LLM_STUB_FIXTURES: /etc/meritum/llm-stub.json
+    volumes:
+      - *files
+      - ./config/llm-stub.json:/etc/meritum/llm-stub.json:ro
     depends_on:
       db:
         condition: service_healthy
@@ -59,7 +81,14 @@ services:
       MERITUM_DATABASE_URL: *db-url
       MERITUM_DBOS_URL: *db-url
       MERITUM_DBOS_SCHEMA: worker_local
+      MERITUM_DATABASE_PROVIDER: postgres
+      MERITUM_FILES_DIR: /var/lib/meritum/files
+      MERITUM_BLOB_PROVIDER: filesystem
+      MERITUM_BLOB_DIRECTORY: /var/lib/meritum/files
       FORWARDED_ALLOW_IPS: "*"
+    env_file: *env-file
+    volumes:
+      - *files
     ports:
       - "127.0.0.1:8000:8000"
     depends_on:
@@ -90,3 +119,4 @@ services:
 
 volumes:
   pgdata:
+  files:
