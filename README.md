@@ -58,6 +58,7 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 | `mocks/` | [meritum-mocks](https://github.com/Meritum-HackNation2026/meritum-mocks) | makiety X, Facebooka, Instagrama, Reddita i TikToka z małym backendem w Hono |
 | `marketing/` | [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing) | deck, film i grafiki na konkurs MSZ |
 | `design-system/` | [meritum-design-system](https://github.com/Meritum-HackNation2026/meritum-design-system) | dokument produktowy, kontrakty domenowe, system projektowy, teksty, źródłowe makiety platform |
+| `docs/` | [meritum-docs](https://github.com/Meritum-HackNation2026/meritum-docs) | dokumentacja aplikacji (Zensical, Cloudflare Pages) |
 | `infra/` | [meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra) | runnery GitHub Actions (GCP i dellpromaxgb10) oraz wspólna platforma na dellpromaxgb10: PostgreSQL, gateway, trasy Cloudflare |
 | `org-profile/` | [.github](https://github.com/Meritum-HackNation2026/.github) | publiczny profil organizacji na GitHubie (`profile/README.md`) |
 | `scripts/` | (to repozytorium) | skrypty pomocnicze |
@@ -118,7 +119,7 @@ Submoduł wskazuje konkretny commit, a nie gałąź. Żeby przesunąć wszystkie
 
 ```bash
 git submodule update --remote --merge
-git add design-system infra org-profile core backend worker frontend mocks extension marketing
+git add design-system infra org-profile core backend worker frontend mocks extension marketing docs
 git commit -m "Zaktualizuj submoduły"
 ```
 
