@@ -90,22 +90,89 @@ Skrypt ustawia `core.hooksPath` w monorepo i we wszystkich submodułach. W pojed
 
 Dependabot otwiera w poniedziałki PR-y z aktualizacjami według `.github/dependabot.yml`. Wersje drobne i poprawkowe trafiają do jednego PR na ekosystem. Wersji głównych ani nowego Pythona w obrazach Dependabot nie proponuje. PR idzie do domyślnej gałęzi repozytorium (`develop` we frontendzie, backendzie i workerze, `main` w pozostałych). Wersję meritum-core w backendzie i workerze podbija workflow w core, Dependabot jej nie rusza.
 
-## Uruchomienie lokalne jednym poleceniem
+## Jak przetestować Meritum (jury)
+
+Są dwie ścieżki. Żadna nie wymaga pomocy zespołu.
+
+| Ścieżka | Co trzeba mieć | Klucze |
+|---|---|---|
+| Publiczne demo | przeglądarkę | żadnych |
+| Lokalnie | Docker z Compose 2.24+, git, klucz SSH z dostępem do organizacji (do czasu upublicznienia meritum-core) | żadnych na stubach; własne klucze Google Cloud dla prawdziwego modelu |
+
+### Publiczne demo
+
+- Formularz WWW: [meritum.gburek.app](https://meritum.gburek.app). Wklej tekst albo link i kliknij „Sprawdź”.
+- Discord: [zainstaluj „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396), potem `/sprawdz` albo „Sprawdź w Meritum” w menu wiadomości.
+- Makieta Discorda (mocks/001, [meritum-mocks#12](https://github.com/Meritum-HackNation2026/meritum-mocks/issues/12), główna ścieżka obok formularza): adres pojawi się w tabeli makiet wyżej, gdy makieta będzie wdrożona.
+- Wtyczka Chrome (opcjonalnie, poniżej 2 minut): pobierz artefakt `meritum-extension-prd` z [ostatniego przebiegu CI na `main`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess), rozpakuj, otwórz `chrome://extensions`, włącz „Tryb dewelopera”, kliknij „Załaduj rozpakowane” i wskaż katalog. Przycisk „Sprawdź” pojawi się pod postami na makietach platform.
+
+### Lokalnie jednym poleceniem
 
 ```bash
 git clone --recurse-submodules git@github.com:Meritum-HackNation2026/meritum-monorepo.git
 cd meritum-monorepo
 ssh-add ~/.ssh/id_ed25519    # klucz z dostępem do organizacji (meritum-core jest na razie prywatne)
+cp .env.example .env         # opcjonalnie: własne klucze
 docker compose up --build
 ```
 
 | Adres | Co |
 |---|---|
-| http://localhost:8080 | aplikacja webowa (nginx przekazuje `/api` do API) |
+| http://localhost:8080 | aplikacja webowa z formularzem (nginx przekazuje `/api` do API) |
 | http://localhost:8080/api/docs | dokumentacja API |
+| http://localhost:8080/api/v1/health | test gotowości: baza, worker, brakujące zmienne |
 | http://localhost:3000 | makiety platform (`/x/`, `/facebook/`, `/instagram/`, `/reddit/`, `/tiktok/`) |
 
-`docker-compose.yml` buduje te same obrazy co dev i prd: Postgres z pgvector i polskim słownikiem, worker DBOS, API, frontend i makiety. Lokalnie jedna rola bazy robi wszystko; na serwerze każda aplikacja i środowisko ma własną rolę i schemat. Klucz SSH jest potrzebny tylko do zbudowania API i workera, dopóki repozytoria są prywatne.
+`docker-compose.yml` buduje te same obrazy co dev i prd: PostgreSQL z obrazu meritum-infra (pgvector i polski słownik), worker DBOS, API, frontend i makiety. API i worker dzielą wolumen `files` na nagrania i obrazy (adapter systemu plików `BlobStore`, ADR-31). Lokalnie jedna rola bazy robi wszystko; na serwerze każda aplikacja i środowisko ma własną rolę i schemat.
+
+Każda zmienna w `.env.example` ma opis. Bez pliku `.env` system startuje na stubach z lokalną, jawną solą `MERITUM_CHANNEL_HASH_SALT` (poza własnym komputerem ustaw własną): model językowy odpowiada z `config/llm-stub.json`, a embeddingi i transkrypcja też są stubami. Prawdziwy model to `MERITUM_LLM_PROVIDER=vertex` z modelem, regionem UE i projektem Google Cloud oraz Application Default Credentials w kontenerze workera.
+
+Gdy brakuje klucza, test gotowości wypisuje jego nazwę (nigdy wartości) w logu startu i w `/api/v1/health`, a API odpowiada na pytania stanem „Problem techniczny” zamiast werdyktu (US-BEZ-03, US-WDR-08).
+
+Proces Gateway Discorda (backend/028) dojdzie do compose jako usługa uruchamiana tylko z tokenem bota, gdy powstanie w meritum-backend. Do tego czasu Discord działa przez endpoint interakcji API (`MERITUM_DISCORD_PUBLIC_KEY`).
+
+### Test dymny
+
+```bash
+scripts/smoke.sh                 # zostawia system uruchomiony
+SMOKE_DOWN=1 scripts/smoke.sh    # na końcu zatrzymuje compose
+```
+
+Skrypt uruchamia `docker compose up --build`, czeka na `/api/v1/health` i wysyła jedno sprawdzenie tekstu na stubie modelu, a potem czeka na wynik. Działa tylko lokalnie i ręcznie; nie należy do żadnego CI, bo wymaga kontaktu między usługami. Potrzebuje backendu i workera z endpointem `/api/v1/checks`, czyli submodułów po promocji `develop` → `main` (`scripts/update-submodules.sh`).
+
+### Miejsce przetwarzania (rejestr podmiotów przetwarzających, ADR-14)
+
+| Podmiot | Co przetwarza | Region | Kiedy |
+|---|---|---|---|
+| Google Cloud Vertex AI | tekst pytania (po maskowaniu), fragmenty źródeł; model językowy i embeddingi | UE (`europe-central2` / `europe-west4`; Londyn i Zurych odrzucane) | `MERITUM_LLM_PROVIDER=vertex`, `MERITUM_EMBEDDINGS_PROVIDER=vertex` |
+| Google Cloud Sensitive Data Protection (DLP) | tekst pytania przed modelem, maskowanie danych osobowych | UE (`MERITUM_PII_LOCATION`, domyślnie Warszawa) | `MERITUM_PII_GATE=sdp` |
+| Google Cloud Model Armor albo Cloudflare Workers AI | tekst pytania i źródeł, klasyfikacja wstrzyknięć poleceń | Model Armor: region UE projektu; Cloudflare: sieć globalna, poza UE | `MERITUM_INJECTION_GATE_PROVIDER` |
+| Google Cloud Speech-to-Text v2 | nagrania głosowe (transkrypcja) | UE | `MERITUM_TRANSCRIPTION_PROVIDER=speech_v2` |
+| Discord | wiadomości i identyfikator użytkownika kanału (u nas tylko solony skrót) | USA | kanał Discord |
+| Cloudflare | ruch HTTP publicznego demo (tunel, ochrona przed DDoS) | sieć globalna | publiczne demo |
+
+Lokalnie, na stubach, nic nie opuszcza komputera.
+
+### Bramki przed modelem
+
+| Bramka | Dostawca | Region | Koszt | Gdy wyłączona |
+|---|---|---|---|---|
+| Maskowanie danych osobowych (DLP) | Google Sensitive Data Protection | UE | [cennik inspekcji treści](https://cloud.google.com/sensitive-data-protection/pricing) | działają tylko wzorce telefonu, e-maila i PESEL-u; log zapisuje pominięcie bramki |
+| Klasyfikator wstrzyknięć | Google Model Armor albo Cloudflare Workers AI | UE albo globalnie | [Model Armor](https://cloud.google.com/security-command-center/pricing), [Workers AI](https://developers.cloudflare.com/workers-ai/platform/pricing/) | działają wzorce PL/EN z meritum-core, treść użytkownika i źródeł trafia do modelu wyłącznie jako dane, a log zapisuje pominięcie bramki |
+| Reranker | jeszcze brak (ADR-14 przewiduje dostawcę w UE) | brak | 0 zł | wyniki wyszukiwania zostają w kolejności z wyszukiwarki |
+
+### Koszty, limity i zachowanie pod obciążeniem (ADR-18)
+
+Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord` (US-OBS-02). Koszt 1 000 zapytań, koszt utrzymania kanałów, koszt i limity transkrypcji oraz odsetek trafień w pamięci wyników podajemy tylko zmierzone naszym skryptem ewaluacji (meritum-worker, `evals/`); do czasu pomiaru zostają z cennikiem dostawcy zamiast liczby:
+
+| Pozycja | Wartość |
+|---|---|
+| Koszt 1 000 zapytań (model, embeddingi, bramki, wyszukiwarka) | do pomiaru; składowe: [Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/pricing) i bramki wyżej |
+| Utrzymanie kanałów: WWW, wtyczka, Discord | do pomiaru |
+| Transkrypcja nagrań | Google Speech-to-Text v2 w UE, [cennik za minutę](https://cloud.google.com/speech-to-text/pricing); nagranie do 20 MiB i 10 minut; plik i wynik usuwa po 30 dniach godzinny przebieg retencji |
+| Odsetek trafień w pamięci wyników | do pomiaru |
+
+Przy dużym ruchu: sprawdzenia idą przez kolejkę DBOS z limitem współbieżności, API liczy limity na IP, kanał i region (`MERITUM_CHECKS_PER_*_PER_MINUTE`) i próg oczekujących sprawdzeń (`MERITUM_MAX_PENDING_CHECKS`), a ponad limitem odpowiada HTTP 429 z `Retry-After` i komunikatem, nigdy werdyktem. Awaria albo brak klucza dostawcy kończy się stanem „Problem techniczny”, a nie pozornym wynikiem.
 
 ## Klonowanie
 
