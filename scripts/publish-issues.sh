@@ -1,11 +1,14 @@
 #!/usr/bin/env bash
 # Files the drafts from issues/drafts/ as GitHub issues, in dependency order, idempotent by title.
-# Epics (issues/drafts/epics/) go to meritum-monorepo first; every child is linked to its epic as a
-# sub-issue and to its dependencies as "blocked by" (both best effort), and gets "Depends on <url>"
-# lines in Notes. Epic bodies are rewritten at the end with a task list of their children.
+# Epics (issues/drafts/epics/) go to meritum-monorepo first, in the order of their own depends_on;
+# every child is linked to its epic as a sub-issue (best effort). depends_on becomes "Depends on <url>"
+# lines in Notes and, where the issue dependencies API answers, "blocked by" relationships.
+# relates_to becomes a "Powiązane:" line in Notes. Epic bodies are rewritten at the end with a task
+# list of their children; draft IDs in epic bodies and "Powiązane:" lines become links.
 #
 # Usage: scripts/publish-issues.sh [--dry-run] [draft-id ...]   e.g. core/006 worker/001
-# Needs: gh (authenticated, repo scope), uv. Run scripts/setup-labels.sh first: unknown labels fail.
+# Needs: gh (authenticated, repo scope), uv. Run scripts/setup-labels.sh first: every label must be
+# defined there, which the script checks before anything else (also in --dry-run).
 set -euo pipefail
 cd "$(dirname "$0")/.."
 exec uv run --quiet --no-project --with pyyaml python - "$@" <<'PY'
@@ -33,22 +36,41 @@ def load() -> dict[str, dict]:
         draft_id = f"epics/{meta['epic']}" if is_epic else f"{path.parent.name}/{path.name[:3]}"
         drafts[draft_id] = {**meta, "id": draft_id, "body": match.group(2).strip(), "is_epic": is_epic}
     for d in drafts.values():
-        for dep in d.get("depends_on") or []:
-            if dep not in drafts:
-                sys.exit(f"{d['id']}: unknown dependency {dep}")
+        for key in ("depends_on", "relates_to"):
+            for dep in d.get(key) or []:
+                if dep not in drafts:
+                    sys.exit(f"{d['id']}: unknown {key} entry {dep}")
     return drafts
 
 
+def known_labels() -> set[str]:
+    """Label names defined in scripts/setup-labels.sh ("name|color|description" entries)."""
+    text = Path("scripts/setup-labels.sh").read_text(encoding="utf-8")
+    return set(re.findall(r'^\s*"([^"|]+)\|[0-9a-fA-F]{6}\|', text, re.M))
+
+
+def check_labels(drafts: dict[str, dict]) -> None:
+    labels = known_labels()
+    bad = [f"{k}: {label}" for k, d in sorted(drafts.items()) for label in d["labels"] if label not in labels]
+    if bad:
+        sys.exit("labels missing from scripts/setup-labels.sh:\n  " + "\n  ".join(bad))
+
+
+def natural(key: str) -> tuple:
+    return tuple(int(p) if p.isdigit() else p for p in re.split(r"(\d+)", key))
+
+
 def order(drafts: dict[str, dict]) -> list[str]:
-    """Epics first, then children in topological order (stable by id)."""
-    done: list[str] = sorted(k for k, d in drafts.items() if d["is_epic"])
-    pending = sorted(k for k, d in drafts.items() if not d["is_epic"])
-    while pending:
-        ready = [k for k in pending if all(dep in done for dep in drafts[k].get("depends_on") or [])]
-        if not ready:
-            sys.exit(f"dependency cycle among: {', '.join(pending)}")
-        done += ready
-        pending = [k for k in pending if k not in ready]
+    """Epics first, then children, each group in topological order (stable by natural id)."""
+    done: list[str] = []
+    for is_epic in (True, False):
+        pending = sorted((k for k, d in drafts.items() if d["is_epic"] is is_epic), key=natural)
+        while pending:
+            ready = [k for k in pending if all(dep in done for dep in drafts[k].get("depends_on") or [])]
+            if not ready:
+                sys.exit(f"dependency cycle among: {', '.join(pending)}")
+            done += ready
+            pending = [k for k in pending if k not in ready]
     return done
 
 
@@ -74,11 +96,42 @@ def best_effort(*args: str) -> None:
     time.sleep(1)
 
 
-def with_dependencies(body: str, urls: list[str]) -> str:
-    if not urls:
+def with_notes(body: str, lines: list[str]) -> str:
+    if not lines:
         return body
-    lines = "\n".join(f"Depends on {u}" for u in urls)
-    return f"{body}\n\n{lines}" if "### Notes" in body else f"{body}\n\n### Notes\n\n{lines}"
+    text = "\n".join(lines)
+    return f"{body}\n\n{text}" if "### Notes" in body else f"{body}\n\n### Notes\n\n{text}"
+
+
+def link(key: str, urls: dict[str, str]) -> str:
+    return urls.get(key, f"<{key}>")
+
+
+def render(d: dict, urls: dict[str, str]) -> str:
+    """Body with "Powiązane:" and "Depends on" lines; draft IDs in epic bodies become links."""
+    body = d["body"]
+    if d["is_epic"]:
+        body = re.sub(r"\b[a-z-]+/\d{3}\b", lambda m: urls.get(m.group(0), m.group(0)), body)
+    lines = []
+    if d.get("relates_to"):
+        lines.append("Powiązane: " + ", ".join(link(k, urls) for k in d["relates_to"]))
+    lines += [f"Depends on {link(k, urls)}" for k in d.get("depends_on") or []]
+    return with_notes(body, lines)
+
+
+def edit_body(url: str, body: str) -> None:
+    with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
+        f.write(body)
+    gh("issue", "edit", url, "--body-file", f.name)
+    time.sleep(1)
+
+
+def dependencies_api(url: str) -> bool:
+    """True when the issue dependencies API answers for this repo (GET .../dependencies/blocked_by)."""
+    repo, number = url.split("/")[-3], url.split("/")[-1]
+    probe = subprocess.run(["gh", "api", f"repos/{ORG}/{repo}/issues/{number}/dependencies/blocked_by"],
+                           capture_output=True, text=True)
+    return probe.returncode == 0
 
 
 def create(repo: str, title: str, labels: list[str], body: str) -> str:
@@ -93,24 +146,32 @@ def create(repo: str, title: str, labels: list[str], body: str) -> str:
 
 
 drafts = load()
+check_labels(drafts)
 plan = [k for k in order(drafts) if not ONLY or k in ONLY or drafts[k]["is_epic"]]
 urls: dict[str, str] = {}
 children: dict[str, list[str]] = {}
+created: list[str] = []
+blocked_by_api: dict[str, bool] = {}
 for key in plan:
     d = drafts[key]
-    dep_urls = [urls.get(dep, f"<{dep}>") for dep in d.get("depends_on") or []]
     if DRY:
-        print(f"{key:20} {d['repo']:22} {d['title']}" + (f"  [after {', '.join(d['depends_on'])}]" if d.get("depends_on") else ""))
+        after = f"  [after {', '.join(d['depends_on'])}]" if d.get("depends_on") else ""
+        print(f"{key:20} {d['repo']:22} {d['title']}{after}")
         urls[key] = f"<{key}>"
         continue
     url = find_by_title(d["repo"], d["title"])
     if url:
         print(f"exists   {key:20} {url}")
     else:
-        url = create(d["repo"], d["title"], d["labels"], with_dependencies(d["body"], dep_urls))
+        url = create(d["repo"], d["title"], d["labels"], render(d, urls))
+        created.append(key)
         print(f"created  {key:20} {url}")
+        if d["repo"] not in blocked_by_api:
+            blocked_by_api[d["repo"]] = dependencies_api(url)
+            if not blocked_by_api[d["repo"]]:
+                print(f"  note: no issue dependencies API in {d['repo']}; \"Depends on\" lines only")
         for dep in d.get("depends_on") or []:
-            if dep in urls:
+            if dep in urls and blocked_by_api[d["repo"]]:
                 number = url.rsplit("/", 1)[1]
                 best_effort("api", f"repos/{ORG}/{d['repo']}/issues/{number}/dependencies/blocked_by",
                             "-F", f"issue_id={db_id(urls[dep])}")
@@ -122,12 +183,18 @@ for key in plan:
     if not d["is_epic"]:
         children.setdefault(f"epics/{d.get('epic')}", []).append(f"- [ ] {url} {d['title']}")
 
-if not DRY:
+if DRY:
+    print(f"\n{len(plan)} drafts, labels ok, no dependency cycle")
+else:
     for key, d in drafts.items():
         if d["is_epic"] and key in urls and children.get(key):
-            body = d["body"].replace("<!-- children -->", "\n".join(children[key]))
-            with tempfile.NamedTemporaryFile("w", suffix=".md", delete=False, encoding="utf-8") as f:
-                f.write(body)
-            gh("issue", "edit", urls[key], "--body-file", f.name)
+            body = render(d, urls).replace("<!-- children -->", "\n".join(children[key]))
+            edit_body(urls[key], body)
             print(f"updated  {key:20} task list ({len(children[key])} children)")
+    # issues created before their relates_to targets existed: fill in the links now
+    for key in created:
+        d = drafts[key]
+        if not d["is_epic"] and any(r in created and plan.index(r) > plan.index(key) for r in d.get("relates_to") or []):
+            edit_body(urls[key], render(d, urls))
+            print(f"updated  {key:20} related links")
 PY

@@ -24,6 +24,12 @@ Code is split by domain first (ADR-01). Domains: `checks`, `channels`, `evidence
 `security`, `moderation`, `observability`, `notifications`, plus `jobs` (DBOS plumbing) and
 `shared` only for code used by 3+ domains.
 
+Technical ports that many domains call (LLM, blob storage, page fetcher, personal-data masking)
+live in `shared/<concept>/` with their own `ports.py`, `factory.py` and `adapters/`, e.g.
+`meritum_core/shared/llm/`, `shared/blobs/`. A port that one domain owns stays in that domain
+even when others call it through the domain's `__init__` (`CorpusSearch` in `corpus`). Move a
+port to `shared/` when a third domain starts calling it, in its own PR.
+
 Inside a domain keep few directory names. A concept is **either** one module **or** a package:
 
 ```text
@@ -111,6 +117,18 @@ def build_llm(settings: LlmSettings) -> LlmPort:
         case LlmProvider.STUB:
             return StubLlm()
 ```
+
+Where a port and its adapters live (core, backend or worker):
+
+- The port, its stub or null adapter and its contract test live in **core** when more than one
+  process uses the port or its result type.
+- Adapters and the factory that picks one live in **core** when both backend and worker call
+  them. Example: the DLP masking gate, called by the API before a workflow starts and by the
+  worker on step outputs.
+- Adapters called by one process only live in that process, next to their own factory. Example:
+  the injection classifier and the reranker, called only by the worker. Core then keeps the port
+  and the null gate, and a core factory that composes layers takes the gate as an argument; it
+  never imports a backend or worker adapter.
 
 Domain code (models, rules, workflows) depends on ports only. Tests use the stub adapter or a
 fake satisfying the Protocol; no network in unit tests.
@@ -294,6 +312,19 @@ workflow: they take too long. If such a test is worth writing, it runs manually 
 through a script (e.g. `scripts/e2e.sh`) documented in the README. CI runs linters, type
 checkers, unit tests, behave scenarios against in-process fakes, and the architecture checks.
 Reviewers reject CI changes that add the former.
+
+### TypeScript tests with React components
+
+`pnpm test` runs `node --test`. Node strips TypeScript types but does not transform JSX, and
+components need a DOM, so a repo with `.tsx` tests loads both before the runner:
+
+```json
+"test": "node --import tsx --import ./tests/setup-dom.ts --test"
+```
+
+`tests/setup-dom.ts` calls `GlobalRegistrator.register()` from `@happy-dom/global-registrator`
+(and `unregister()` in an `after` hook); tests render with `@testing-library/react` and query by
+role and text from `copy/pl.json`. Browser e2e stays a manual or local script.
 
 ## Suggestions (not binding, recommended)
 

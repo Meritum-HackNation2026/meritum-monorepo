@@ -26,7 +26,7 @@ agents and scripts can parse them.
 | `bug:` | observed symptom | `bug: karta pokazuje siłę przy werdykcie „brak wystarczających dowodów”` |
 | `chore:` | tooling, CI, refactoring, dependencies | `chore: kontrakty sprawdzania podzielone na moduły do 250 linii` |
 | `docs:` | documentation only | `docs: README opisuje klucze, limity i region przetwarzania` |
-| `epic:` | tracking issue for a domain | `epic: E3 Źródła, dowody i werdykt` |
+| `epic:` | tracking issue for a group of issues that finish together | `epic: E2 Dowody i werdykt` |
 
 Describe the outcome, not the task ("formularz pokazuje…", not "zaimplementuj formularz").
 
@@ -87,7 +87,7 @@ Each item must be checkable by someone who did not write the issue. Always inclu
 
 | Repo | Gets issues for |
 |---|---|
-| `meritum-core` | contracts (`checks/contracts`), ports, adapters and factories shared by backend and worker, pure domain rules (verdict, strength, citation check, masking, normalization) |
+| `meritum-core` | contracts (`checks/contracts`), ports, adapters and factories shared by backend and worker (including gates both call, such as DLP masking), repositories both read or write, pure domain rules (verdict, strength, citation check, masking, normalization) |
 | `meritum-backend` | FastAPI endpoints, inbound channel adapters (WWW API, Discord, SMS, MCP), limits, readiness, SSE, staff auth |
 | `meritum-worker` | DBOS workflows: the check pipeline, ingestion, RSS, EUvsDisinfo, retention, evaluation runs |
 | `meritum-frontend` | the web app: form, result card, notifications, moderator panel, evaluation page |
@@ -99,7 +99,18 @@ Each item must be checkable by someone who did not write the issue. Always inclu
 | `meritum-monorepo` | epics, cross-repo work (docker compose, root README) |
 
 One issue = one repo = one PR. If a story spans repos (most do), split it: contract or rule in
-core, workflow in worker, endpoint in backend, UI in frontend, each depending on the previous.
+core, workflow in worker, endpoint in backend, UI in frontend. A port lives in core; an adapter
+that only the worker calls (a reranker, an injection classifier) lives in the worker with its
+factory (meritum-architecture, rule 3).
+
+Dependencies: an issue depends on another only when it cannot be built or tested without that
+code merged: an import, a contract version, or a file both change. A frontend, extension or mock
+issue does **not** depend on the backend issue that serves its endpoint: it names the endpoint,
+tests against a fake API with types from the contracts, and lists the backend issue in
+`relates_to`. Two issues without a dependency never change the same file, except the joining
+files (router registration in `main.py`, `__init__.py` and `index.ts` exports, lock files with
+their manifests, appended scenarios in `features/<domain>.feature`, appended entries in
+`constants.py` / `constants.ts`); meritum-pr-review-loop says how to merge those.
 
 ## Labels
 
@@ -118,11 +129,17 @@ review skills, never when filing. The label set is defined in `scripts/setup-lab
 
 ## Epics
 
-One epic per domain in `meritum-monorepo`, titled `epic: E<n> <domain name>`, labels
-`type: epic`, `status: triage`, `area: <domain>`. Body: Context (the domain and its stories),
-Expected behavior (one end-to-end Given/When/Then), Criteria of success as a task list of the
-child issues (`- [ ] Meritum-HackNation2026/meritum-core#12`). Link each child as a GitHub
-sub-issue when the API allows it (it does across repos in one org):
+Epics in `meritum-monorepo` group issues that finish together, in dependency order
+(E0 foundations first, E10 deployment and submission last; the list is in `issues/drafts/epics/`).
+Title `epic: E<n> <name>`, labels `type: epic`, `status: triage`, `area: <main domain>`,
+frontmatter `depends_on: [epics/E<k>, ...]` for the epics whose issues it waits on. Body:
+`### Context` (what the epic covers, stories), `### Goal` (one sentence a demo can check),
+`### Scope` (In / Out), `### Expected behavior` (one end-to-end Given/When/Then),
+`### Demo path` (the child issues without which the contest demo from §4 does not run, in
+dependency order), `### Definition of done` (the `<!-- children -->` task list the publish script
+fills, then epic-wide checks), `### Area`, `### Notes` (epic dependencies and the team decisions
+the epic carries). An epic may not depend on an epic that depends on it. Link each child as a
+GitHub sub-issue when the API allows it (it does across repos in one org):
 
 ```bash
 id() { gh api "repos/Meritum-HackNation2026/$1/issues/$2" --jq .id; }
@@ -140,14 +157,17 @@ title: "feat: ..."
 labels: ["type: feature", "status: triage", "area: evidence", "size: M", "priority: mvp"]  # quoted: they contain ": "
 stories: [US-ZRD-03, US-ZRD-04]
 features: [F-15]
-depends_on: [core/001]          # draft IDs <dir>/<NNN>, any repo
-epic: E3
+depends_on: [core/001]          # draft IDs <dir>/<NNN>, any repo: blocked by
+relates_to: [worker/007]        # related, not blocking (endpoint and its screen, sibling channels)
+epic: E2
 size: M
 ---
 ```
 
 `scripts/publish-issues.sh` files them in dependency order, idempotent by title
-(`--dry-run` prints the plan). To file one issue by hand:
+(`--dry-run` prints the plan and fails on a label missing from `scripts/setup-labels.sh`). It
+turns `depends_on` into "Depends on" lines and GitHub "blocked by" relationships, and
+`relates_to` into a "Powiązane:" line in Notes. To file one issue by hand:
 
 ```bash
 gh issue list -R Meritum-HackNation2026/<repo> --state all --search "in:title <keywords>"   # search first

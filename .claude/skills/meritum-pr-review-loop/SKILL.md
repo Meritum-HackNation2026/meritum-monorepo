@@ -21,6 +21,17 @@ Agents never push to `develop` or `main` directly and never open the `develop` �
   TypeScript `pnpm biome ci . && pnpm tsc --noEmit && pnpm test && pnpm knip && pnpm depcruise`
   (`pnpm test` runs `node --test`, including `tests/architecture/`)
   (use the repo's script names when they exist).
+- Shared files. Parallel PRs from other agents touch the same joining files: router
+  registration in `main.py`, re-exports in `__init__.py` and `index.ts`, `pyproject.toml` with
+  `uv.lock`, `package.json` with `pnpm-lock.yaml`, appended scenarios in
+  `features/<domain>.feature` and appended entries in `constants.py` / `constants.ts`. Keep your
+  edits there to the lines you need (one import, one router, one export, one dependency), never
+  reorder or reformat them. Right before opening the PR, and again before merging, rebase on
+  `origin/develop` (`git fetch && git rebase origin/develop`, then `--force-with-lease`; review
+  rounds use new commits, the rebase happens before round 1 and before the merge). For lock files,
+  take develop's version and regenerate (`uv lock`, `pnpm install --lockfile-only`) instead of
+  merging the conflict by hand. Any other file that a parallel PR also changes means the issues
+  needed a dependency: stop and comment on both issues.
 - Commits: conventional commits with the domain as scope, issue number at the end:
   `feat(evidence): liczy siłę dowodów regułą z przesłanek (#12)`.
 - **No AI attribution** in commits, PR titles or bodies: no `Co-Authored-By` for an AI, no
