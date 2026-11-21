@@ -1,0 +1,32 @@
+name: Project sync
+
+# Every 15 minutes puts every issue from the org repos into the org project "Meritum"
+# (https://github.com/orgs/Meritum-HackNation2026/projects/1) and fills Priorytet, Rozmiar and,
+# while nobody has set it, Status from the labels; it also moves unblocked MVP issues from
+# `status: triage` to `status: ready`. See scripts/project-sync.sh. The Free plan allows one
+# built-in auto-add workflow (it covers meritum-monorepo), so this covers all repos.
+# MERITUM_PROJECT_TOKEN: fine-grained PAT "meritum-project-sync" (org Projects read/write,
+# Issues read/write for the label swap, Metadata read; all repos), expires every 90 days.
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    runs-on: [self-hosted, meritum]
+    timeout-minutes: 10
+    concurrency:
+      group: project-sync
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          enable-cache: false # ~/.cache/uv stays on the self-hosted runner
+      - run: scripts/project-sync.sh
+        env:
+          GH_TOKEN: ${{ secrets.MERITUM_PROJECT_TOKEN }}
