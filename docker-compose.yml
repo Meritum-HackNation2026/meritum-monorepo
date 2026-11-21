@@ -1,0 +1,92 @@
+# Meritum: everything on one machine with one command (from the monorepo root,
+# after `git submodule update --init`):
+#
+#   docker compose up --build
+#
+#   http://localhost:8080        web app (meritum-frontend; /api goes to the API)
+#   http://localhost:8080/api/docs  API docs
+#   http://localhost:3000        platform mocks (/x/, /facebook/, /instagram/, /reddit/, /tiktok/)
+#
+# Same images as dev and prd on dellpromaxgb10. Locally one owner role does
+# everything; on the server every app and env has its own role and schema
+# (meritum-infra, onprem/dellpromaxgb10/platform).
+#
+# The API and the worker depend on meritum-core, a private repository until the
+# end of the hackathon, so their builds read it over SSH: load a key with access
+# to Meritum-HackNation2026 into your agent first (`ssh-add ~/.ssh/id_ed25519`).
+name: meritum
+
+x-db-url: &db-url postgresql://meritum:meritum@db:5432/meritum
+
+services:
+  db:
+    # PostgreSQL 18 + pgvector + Polish full-text search (public.polish).
+    build: infra/onprem/dellpromaxgb10/platform/postgres
+    environment:
+      POSTGRES_USER: meritum
+      POSTGRES_PASSWORD: meritum
+      POSTGRES_DB: meritum
+    ports:
+      - "127.0.0.1:${MERITUM_DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+      - ./infra/onprem/dellpromaxgb10/platform/postgres/polish-fts.sql:/docker-entrypoint-initdb.d/20-polish-fts.sql:ro
+    healthcheck:
+      # TCP, not the socket: the init-time server listens on the socket only.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U meritum -d meritum"]
+      interval: 2s
+      timeout: 3s
+      retries: 60
+
+  worker:
+    build:
+      context: worker
+      ssh: [default]
+    environment:
+      MERITUM_ENV: local
+      MERITUM_DBOS_URL: *db-url
+      MERITUM_DBOS_SCHEMA: worker_local
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build:
+      context: backend
+      ssh: [default]
+    environment:
+      MERITUM_ENV: local
+      MERITUM_DATABASE_URL: *db-url
+      MERITUM_DBOS_URL: *db-url
+      MERITUM_DBOS_SCHEMA: worker_local
+      FORWARDED_ALLOW_IPS: "*"
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      worker:
+        condition: service_started
+
+  web:
+    build: frontend
+    environment:
+      API_UPSTREAM: api:8000
+    ports:
+      - "127.0.0.1:8080:8080"
+    depends_on:
+      - api
+
+  mocks:
+    build: mocks
+    environment:
+      MERITUM_ENV: local
+      DATABASE_URL: *db-url
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:
