@@ -74,6 +74,23 @@ Każde repo aplikacji ma `.github/workflows/ci.yml` z jednym uruchomieniem na co
 
 Zmiany idą przez PR do `develop`, wydanie przez PR `develop` → `main`. Nie pushuj bezpośrednio do `develop` ani `main`. Organizacja jest na planie Free, który nie chroni gałęzi w repozytoriach prywatnych, więc pilnujemy tego sami. Gałąź funkcji usuwaj po merge'u (`gh pr merge --delete-branch`). Automatyczne usuwanie gałęzi jest wyłączone, bo skasowałoby też `develop` po PR `develop` → `main`.
 
+## Uruchomienie lokalne jednym poleceniem
+
+```bash
+git clone --recurse-submodules git@github.com:Meritum-HackNation2026/meritum-monorepo.git
+cd meritum-monorepo
+ssh-add ~/.ssh/id_ed25519    # klucz z dostępem do organizacji (meritum-core jest na razie prywatne)
+docker compose up --build
+```
+
+| Adres | Co |
+|---|---|
+| http://localhost:8080 | aplikacja webowa (nginx przekazuje `/api` do API) |
+| http://localhost:8080/api/docs | dokumentacja API |
+| http://localhost:3000 | makiety platform (`/x/`, `/facebook/`, `/instagram/`, `/reddit/`, `/tiktok/`) |
+
+`docker-compose.yml` buduje te same obrazy co dev i prd: Postgres z pgvector i polskim słownikiem, worker DBOS, API, frontend i makiety. Lokalnie jedna rola bazy robi wszystko; na serwerze każda aplikacja i środowisko ma własną rolę i schemat. Klucz SSH jest potrzebny tylko do zbudowania API i workera, dopóki repozytoria są prywatne.
+
 ## Klonowanie
 
 Submoduły używają adresów SSH (`git@github.com:Meritum-HackNation2026/<repo>.git`), więc potrzebujesz klucza SSH dodanego do konta GitHub z dostępem do organizacji.
