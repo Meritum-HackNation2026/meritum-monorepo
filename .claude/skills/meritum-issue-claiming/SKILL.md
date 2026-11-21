@@ -63,8 +63,9 @@ not touch the labels (the winner owns them) and pick another issue.
 ## 4. Work
 
 ```bash
-git -C <repo> switch develop && git -C <repo> pull --ff-only
-git -C <repo> worktree add ../<repo>-$N -b "$BRANCH" develop     # one worktree per parallel agent
+BASE=main   # develop in meritum-backend, meritum-worker, meritum-frontend; main everywhere else
+git -C <repo> switch "$BASE" && git -C <repo> pull --ff-only
+git -C <repo> worktree add ../<repo>-$N -b "$BRANCH" "$BASE"     # one worktree per parallel agent
 ```
 
 Build with `mattpocock-skills:tdd`, in vertical slices at the claimed seams: the behave scenario

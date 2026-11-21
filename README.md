@@ -20,22 +20,16 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 | Nazwa | Wersja | Przeznaczenie | Link |
 |---|---|---|---|
 | Makieta X | prd | makieta platformy do demo wtyczki | [meritum-x.gburek.app](https://meritum-x.gburek.app) |
-| Makieta X | dev | makieta platformy do demo wtyczki | [meritum-x-dev.gburek.app](https://meritum-x-dev.gburek.app) |
 | Makieta Facebook | prd | makieta platformy do demo wtyczki | [meritum-facebook.gburek.app](https://meritum-facebook.gburek.app) |
-| Makieta Facebook | dev | makieta platformy do demo wtyczki | [meritum-facebook-dev.gburek.app](https://meritum-facebook-dev.gburek.app) |
 | Makieta Instagram | prd | makieta platformy do demo wtyczki | [meritum-instagram.gburek.app](https://meritum-instagram.gburek.app) |
-| Makieta Instagram | dev | makieta platformy do demo wtyczki | [meritum-instagram-dev.gburek.app](https://meritum-instagram-dev.gburek.app) |
 | Makieta Reddit | prd | makieta platformy do demo wtyczki | [meritum-reddit.gburek.app](https://meritum-reddit.gburek.app) |
-| Makieta Reddit | dev | makieta platformy do demo wtyczki | [meritum-reddit-dev.gburek.app](https://meritum-reddit-dev.gburek.app) |
 | Makieta TikTok | prd | makieta platformy do demo wtyczki | [meritum-tiktok.gburek.app](https://meritum-tiktok.gburek.app) |
-| Makieta TikTok | dev | makieta platformy do demo wtyczki | [meritum-tiktok-dev.gburek.app](https://meritum-tiktok-dev.gburek.app) |
 
 ### Wtyczka Chrome
 
 | Nazwa | Wersja | Przeznaczenie | Link |
 |---|---|---|---|
 | Wtyczka Chrome | prd | zip do załadowania w chrome://extensions (artefakt `meritum-extension-prd` w przebiegu CI) | [przebiegi CI na `main`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess) |
-| Wtyczka Chrome | dev | zip do załadowania w chrome://extensions (artefakt `meritum-extension-dev` w przebiegu CI) | [przebiegi CI na `develop`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Adevelop+is%3Asuccess) |
 
 ### Discord
 
@@ -44,7 +38,7 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 | Discord: Meritum | prd | dodanie aplikacji do konta albo serwera; komendy /sprawdz i „Sprawdź w Meritum” przy wiadomości | [zainstaluj „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396) |
 | Discord: Meritum dev | dev | dodanie aplikacji do konta albo serwera; komendy /sprawdz i „Sprawdź w Meritum” przy wiadomości | [zainstaluj „Meritum dev”](https://discord.com/oauth2/authorize?client_id=1573690220782559332) |
 
-`prd` wdraża się z gałęzi `main`, `dev` z gałęzi `develop`. Worker DBOS nie ma publicznego adresu; to, że działa, widać po zadaniu `ping` w deployu API.
+`prd` wdraża się z gałęzi `main`, `dev` z gałęzi `develop` (tylko frontend, backend i worker). Makiety i wtyczka mają tylko `main`, więc nie mają już wersji dev. Worker DBOS nie ma publicznego adresu; to, że działa, widać po zadaniu `ping` w deployu API.
 
 ## Nawigacja
 
@@ -67,8 +61,10 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 
 | Środowisko | Gałąź | Kontenery na dellpromaxgb10 | Schematy w bazie `meritum` |
 |---|---|---|---|
-| dev | `develop` | `meritum-web-dev`, `meritum-api-dev`, `meritum-worker-dev`, `meritum-mocks-dev` | `api_dev`, `worker_dev`, `mocks_dev` |
+| dev | `develop` (frontend, backend, worker) | `meritum-web-dev`, `meritum-api-dev`, `meritum-worker-dev` | `api_dev`, `worker_dev` |
 | prd | `main` | `meritum-web-prd`, `meritum-api-prd`, `meritum-worker-prd`, `meritum-mocks-prd` | `api_prd`, `worker_prd`, `mocks_prd` |
+
+Kontener `meritum-mocks-dev` i schemat `mocks_dev` zostały po dawnym przepływie makiet i nie dostają nowych wersji.
 
 Wszystkie środowiska dzielą jeden kontener PostgreSQL (`meritum-postgres`, pgvector i pg_trgm). Każda aplikacja w każdym środowisku ma własną rolę, która widzi tylko swój schemat. Schemat workera trzyma też tabele systemowe DBOS, a rola API ma do nich dostęp, żeby zlecać zadania. Szczegóły w README meritum-infra.
 
@@ -77,10 +73,10 @@ Wszystkie środowiska dzielą jeden kontener PostgreSQL (`meritum-postgres`, pgv
 Każde repo aplikacji ma `.github/workflows/ci.yml` z jednym uruchomieniem na commit:
 
 - CI (lint, typy, testy, build) działa na runnerach GCP z etykietą `meritum`, na każdej gałęzi.
-- CD działa na runnerze `dellpromaxgb10`, tylko dla `develop` (dev) i `main` (prd), po zielonym CI. Deploy buduje obraz na hoście (ARM64), podmienia kontener i sprawdza go: API odpowiada na `/api/v1/health` i przepuszcza zadanie `ping` przez workera, frontend i makiety odpowiadają przez gateway pod swoimi adresami.
-- Wtyczka nie ma serwera: na `develop` i `main` CI buduje zip z adresem API danego środowiska i zostawia go jako artefakt przebiegu. Marketing nie ma CI poza skanem sekretów.
+- CD działa na runnerze `dellpromaxgb10` po zielonym CI: `develop` na dev (frontend, backend, worker) i `main` na prd (te trzy oraz makiety). Deploy buduje obraz na hoście (ARM64), podmienia kontener i sprawdza go: API odpowiada na `/api/v1/health` i przepuszcza zadanie `ping` przez workera, frontend i makiety odpowiadają przez gateway pod swoimi adresami.
+- Wtyczka nie ma serwera: na `main` CI buduje zip z adresem API prd i zostawia go jako artefakt przebiegu. Marketing nie ma CI poza skanem sekretów.
 
-Zmiany idą przez PR do `develop`, wydanie przez PR `develop` → `main`. Nie pushuj bezpośrednio do `develop` ani `main`. Organizacja jest na planie Free, który nie chroni gałęzi w repozytoriach prywatnych, więc pilnujemy tego sami. Gałąź funkcji usuwaj po merge'u (`gh pr merge --delete-branch`). Automatyczne usuwanie gałęzi jest wyłączone, bo skasowałoby też `develop` po PR `develop` → `main`.
+W meritum-frontend, meritum-backend i meritum-worker zmiany idą przez PR do `develop`, a wydanie przez PR `develop` → `main`. Pozostałe repozytoria mają tylko `main` i zmiany idą przez PR do `main`. Nie pushuj bezpośrednio do `develop` ani `main`. Organizacja jest na planie Free, który nie chroni gałęzi w repozytoriach prywatnych, więc pilnujemy tego sami. Gałąź funkcji usuwaj po merge'u (`gh pr merge --delete-branch`). Automatyczne usuwanie gałęzi jest wyłączone, bo w trzech repozytoriach z `develop` skasowałoby go po PR `develop` → `main`.
 
 ## Sekrety i zależności
 
@@ -92,7 +88,7 @@ brew install gitleaks && scripts/setup-git-hooks.sh
 
 Skrypt ustawia `core.hooksPath` w monorepo i we wszystkich submodułach. W pojedynczym repo wystarczy `git config core.hooksPath .githooks`. Fałszywy alarm dopisz z uzasadnieniem do `.gitleaks.toml` w tym repo, zamiast pushować z `--no-verify`.
 
-Dependabot otwiera w poniedziałki PR-y z aktualizacjami według `.github/dependabot.yml`. Wersje drobne i poprawkowe trafiają do jednego PR na ekosystem, główne do osobnych, a tam, gdzie jest `develop`, PR idzie do `develop`. Wersję meritum-core w backendzie i workerze podbija workflow w core, Dependabot jej nie rusza.
+Dependabot otwiera w poniedziałki PR-y z aktualizacjami według `.github/dependabot.yml`. Wersje drobne i poprawkowe trafiają do jednego PR na ekosystem, główne do osobnych, a PR idzie do domyślnej gałęzi repozytorium (`develop` we frontendzie, backendzie i workerze, `main` w pozostałych). Wersję meritum-core w backendzie i workerze podbija workflow w core, Dependabot jej nie rusza.
 
 ## Uruchomienie lokalne jednym poleceniem
 

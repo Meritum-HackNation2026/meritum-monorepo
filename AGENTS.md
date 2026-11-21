@@ -22,8 +22,11 @@ worktree; issues and PRs live in the repo whose code changes.
 | `marketing/` | meritum-marketing | contest materials |
 | `org-profile/` | .github | org profile, issue forms, PR template |
 
-Branches in code repos: `<type>/<issue>-<slug>` → PR to `develop` → PR `develop` → `main`
-(the last step is a human's). Never push to `develop` or `main`.
+Integration branch per repo: `develop` in meritum-backend, meritum-worker and meritum-frontend;
+`main` in every other repo (core, mocks, extension, docs, infra, design-system, marketing, this one).
+Branches: `<type>/<issue>-<slug>` from the integration branch → PR to it. In backend, worker and
+frontend a human then promotes `develop` → `main`; elsewhere the merge to `main` is the release.
+Never push to `develop` or `main`.
 
 ## Skills
 
@@ -75,19 +78,20 @@ claude plugin install mattpocock-skills@claude-plugins-official --scope project
 3. **Claim.** An agent picks a ready, unassigned issue whose dependencies are closed, claims it
    with labels and a `Claimed by <agent>, branch <branch>` comment, and re-checks for a race
    (meritum-issue-claiming).
-4. **Build.** In its own worktree, on `<type>/<n>-<slug>` from `develop`, test-first in vertical
+4. **Build.** In its own worktree, on `<type>/<n>-<slug>` from the integration branch, test-first in vertical
    slices (`mattpocock-skills:tdd`): the behave scenario from the issue's Gherkin goes red, then
    one unit test and one minimal change per cycle until it is green, following
    meritum-architecture (and meritum-ui for anything visual). A `bug:` issue starts with
    `mattpocock-skills:diagnosing-bugs` (meritum-issue-claiming, step 4).
-5. **PR.** Self-review with `mattpocock-skills:code-review`, then a PR to `develop` with
+5. **PR.** Self-review with `mattpocock-skills:code-review`, then a PR to the integration branch with
    `Closes #<n>`, issue moved to `status: in review`.
 6. **Review.** Each round, two fresh reviewer subagents, one per axis (Standards: architecture
    and UI rules; Spec: the issue), given the diff and not the author's conclusions, post reviews
    with required fixes; the author fixes; at most 3 rounds tracked with `review: round 1|2|3`
    (meritum-pr-review-loop).
-7. **Merge or escalate.** Approved and green: merge to `develop`. Not approved after round 3:
-   `review: needs human` with a summary. Humans promote `develop` to `main`.
+7. **Merge or escalate.** Approved and green: merge to the integration branch. Not approved after round 3:
+   `review: needs human` with a summary. Humans promote `develop` to `main` in backend, worker
+   and frontend.
 
 Parallel agents: one issue per agent, one worktree per agent, a unique agent name per session
 (`claude/<role>-<topic>-<k>`). An agent that dispatches subagents gives each one an issue
