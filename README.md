@@ -88,7 +88,7 @@ brew install gitleaks && scripts/setup-git-hooks.sh
 
 Skrypt ustawia `core.hooksPath` w monorepo i we wszystkich submodułach. W pojedynczym repo wystarczy `git config core.hooksPath .githooks`. Fałszywy alarm dopisz z uzasadnieniem do `.gitleaks.toml` w tym repo, zamiast pushować z `--no-verify`.
 
-Dependabot otwiera w poniedziałki PR-y z aktualizacjami według `.github/dependabot.yml`. Wersje drobne i poprawkowe trafiają do jednego PR na ekosystem, główne do osobnych, a PR idzie do domyślnej gałęzi repozytorium (`develop` we frontendzie, backendzie i workerze, `main` w pozostałych). Wersję meritum-core w backendzie i workerze podbija workflow w core, Dependabot jej nie rusza.
+Dependabot otwiera w poniedziałki PR-y z aktualizacjami według `.github/dependabot.yml`. Wersje drobne i poprawkowe trafiają do jednego PR na ekosystem. Wersji głównych ani nowego Pythona w obrazach Dependabot nie proponuje. PR idzie do domyślnej gałęzi repozytorium (`develop` we frontendzie, backendzie i workerze, `main` w pozostałych). Wersję meritum-core w backendzie i workerze podbija workflow w core, Dependabot jej nie rusza.
 
 ## Uruchomienie lokalne jednym poleceniem
 
