@@ -63,6 +63,7 @@ services:
       MERITUM_DATABASE_URL: *db-url
       MERITUM_BLOB_PROVIDER: filesystem
       MERITUM_BLOB_DIRECTORY: /var/lib/meritum/files
+      # stub unless .env says otherwise (environment wins over env_file)
       MERITUM_LLM_PROVIDER: ${MERITUM_LLM_PROVIDER:-stub}
       MERITUM_LLM_STUB_FIXTURES: /etc/meritum/llm-stub.json
     volumes:
@@ -76,17 +77,18 @@ services:
     build:
       context: backend
       ssh: [default]
+    env_file: *env-file
     environment:
       MERITUM_ENV: local
       MERITUM_DATABASE_URL: *db-url
       MERITUM_DBOS_URL: *db-url
       MERITUM_DBOS_SCHEMA: worker_local
       MERITUM_DATABASE_PROVIDER: postgres
+      # files volume (ADR-31); wins over MERITUM_BLOB_* in the backend
       MERITUM_FILES_DIR: /var/lib/meritum/files
-      MERITUM_BLOB_PROVIDER: filesystem
-      MERITUM_BLOB_DIRECTORY: /var/lib/meritum/files
+      # local-only default so a clone without .env accepts checks; set your own in .env
+      MERITUM_CHANNEL_HASH_SALT: ${MERITUM_CHANNEL_HASH_SALT:-local-only-not-secret}
       FORWARDED_ALLOW_IPS: "*"
-    env_file: *env-file
     volumes:
       - *files
     ports:

@@ -112,7 +112,7 @@ Są dwie ścieżki. Żadna nie wymaga pomocy zespołu.
 git clone --recurse-submodules git@github.com:Meritum-HackNation2026/meritum-monorepo.git
 cd meritum-monorepo
 ssh-add ~/.ssh/id_ed25519    # klucz z dostępem do organizacji (meritum-core jest na razie prywatne)
-cp .env.example .env         # wpisz co najmniej MERITUM_CHANNEL_HASH_SALT
+cp .env.example .env         # opcjonalnie: własne klucze
 docker compose up --build
 ```
 
@@ -125,7 +125,7 @@ docker compose up --build
 
 `docker-compose.yml` buduje te same obrazy co dev i prd: PostgreSQL z obrazu meritum-infra (pgvector i polski słownik), worker DBOS, API, frontend i makiety. API i worker dzielą wolumen `files` na nagrania i obrazy (adapter systemu plików `BlobStore`, ADR-31). Lokalnie jedna rola bazy robi wszystko; na serwerze każda aplikacja i środowisko ma własną rolę i schemat.
 
-Każda zmienna w `.env.example` ma opis. Bez pliku `.env` system startuje na stubach: model językowy odpowiada z `config/llm-stub.json`, a embeddingi i transkrypcja też są stubami. Prawdziwy model to `MERITUM_LLM_PROVIDER=vertex` z modelem, regionem UE i projektem Google Cloud oraz Application Default Credentials w kontenerze workera.
+Każda zmienna w `.env.example` ma opis. Bez pliku `.env` system startuje na stubach z lokalną, jawną solą `MERITUM_CHANNEL_HASH_SALT` (poza własnym komputerem ustaw własną): model językowy odpowiada z `config/llm-stub.json`, a embeddingi i transkrypcja też są stubami. Prawdziwy model to `MERITUM_LLM_PROVIDER=vertex` z modelem, regionem UE i projektem Google Cloud oraz Application Default Credentials w kontenerze workera.
 
 Gdy brakuje klucza, test gotowości wypisuje jego nazwę (nigdy wartości) w logu startu i w `/api/v1/health`, a API odpowiada na pytania stanem „Problem techniczny” zamiast werdyktu (US-BEZ-03, US-WDR-08).
 

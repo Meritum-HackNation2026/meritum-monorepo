@@ -35,14 +35,15 @@ check_id=$(printf '%s' "$check" | sed -n 's/.*"check_id":"\([^"]*\)".*/\1/p')
 [ -n "$check_id" ] || { echo "Brak check_id w odpowiedzi: $check" >&2; exit 1; }
 echo "Sprawdzenie $check_id przyjęte."
 
-deadline=$((SECONDS + 120))
+deadline=$((SECONDS + ${SMOKE_RESULT_TIMEOUT:-120}))
 while :; do
   result=$(curl --silent --fail -H "X-Meritum-Session: $session" "$api/checks/$check_id" || true)
   case $result in
+    *'"status":"technical_failure"'*) echo "Wynik to Problem techniczny: $result" >&2; exit 1 ;;
     *'"result":{'*) echo "Wynik: $result"; echo "Test dymny przeszedł."; exit 0 ;;
   esac
   if [ "$SECONDS" -ge "$deadline" ]; then
-    echo "Brak wyniku po 120 s: $result" >&2
+    echo "Brak wyniku w czasie: $result" >&2
     docker compose logs --tail 50 worker >&2
     exit 1
   fi
