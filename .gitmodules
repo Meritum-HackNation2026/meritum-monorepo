@@ -26,3 +26,15 @@
 	path = frontend
 	url = git@github.com:Meritum-HackNation2026/meritum-frontend.git
 	branch = main
+[submodule "mocks"]
+	path = mocks
+	url = git@github.com:Meritum-HackNation2026/meritum-mocks.git
+	branch = main
+[submodule "extension"]
+	path = extension
+	url = git@github.com:Meritum-HackNation2026/meritum-extension.git
+	branch = main
+[submodule "marketing"]
+	path = marketing
+	url = git@github.com:Meritum-HackNation2026/meritum-marketing.git
+	branch = main
