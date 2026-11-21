@@ -10,3 +10,19 @@
 	path = org-profile
 	url = git@github.com:Meritum-HackNation2026/.github.git
 	branch = main
+[submodule "core"]
+	path = core
+	url = git@github.com:Meritum-HackNation2026/meritum-core.git
+	branch = main
+[submodule "backend"]
+	path = backend
+	url = git@github.com:Meritum-HackNation2026/meritum-backend.git
+	branch = main
+[submodule "worker"]
+	path = worker
+	url = git@github.com:Meritum-HackNation2026/meritum-worker.git
+	branch = main
+[submodule "frontend"]
+	path = frontend
+	url = git@github.com:Meritum-HackNation2026/meritum-frontend.git
+	branch = main
