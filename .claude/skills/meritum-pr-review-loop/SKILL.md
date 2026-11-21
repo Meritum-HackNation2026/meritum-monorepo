@@ -1,17 +1,20 @@
 ---
 name: meritum-pr-review-loop
-description: Use when a Meritum issue's implementation is ready for a pull request, and for every review round after that. Covers self-review, opening the PR to develop, two-axis review by fresh reviewer subagents, fixing findings, the three-round limit with review labels, merging and escalating to a human.
+description: Use when a Meritum issue's implementation is ready for a pull request, and for every review round after that. Covers self-review, opening the PR to the repo's integration branch, two-axis review by fresh reviewer subagents, fixing findings, the three-round limit with review labels, merging and escalating to a human.
 ---
 
 # PR and review loop
 
-Flow in code repos: `<type>/<n>-<slug>` → PR to `develop` → (humans) PR `develop` → `main`.
+Integration branch (`$BASE` below): `develop` in meritum-backend, meritum-worker and
+meritum-frontend; `main` in every other repo.
+Flow: `<type>/<n>-<slug>` → PR to `$BASE`. In backend, worker and frontend humans then open the
+`develop` → `main` PR; elsewhere the merge to `main` is the release.
 Agents never push to `develop` or `main` directly and never open the `develop` → `main` PR.
 
 ## 1. Before the PR
 
 - Every criterion of success in the issue is met, or the PR says which one is not and why.
-- Self-review: invoke `mattpocock-skills:code-review` with fixed point `origin/develop`, the
+- Self-review: invoke `mattpocock-skills:code-review` with fixed point `origin/$BASE`, the
   issue as the spec (`gh issue view <n> -R <repo>`), and `.claude/skills/meritum-architecture/SKILL.md`
   (plus `meritum-ui/SKILL.md` for UI) as the standards sources. Fix every Standards violation and
   Spec gap it reports. It is not review round 1.
@@ -27,9 +30,9 @@ Agents never push to `develop` or `main` directly and never open the `develop` �
   `features/<domain>.feature` and appended entries in `constants.py` / `constants.ts`. Keep your
   edits there to the lines you need (one import, one router, one export, one dependency), never
   reorder or reformat them. Right before opening the PR, and again before merging, rebase on
-  `origin/develop` (`git fetch && git rebase origin/develop`, then `--force-with-lease`; review
+  `origin/$BASE` (`git fetch && git rebase origin/$BASE`, then `--force-with-lease`; review
   rounds use new commits, the rebase happens before round 1 and before the merge). For lock files,
-  take develop's version and regenerate (`uv lock`, `pnpm install --lockfile-only`) instead of
+  take `$BASE`'s version and regenerate (`uv lock`, `pnpm install --lockfile-only`) instead of
   merging the conflict by hand. Any other file that a parallel PR also changes means the issues
   needed a dependency: stop and comment on both issues.
 - Commits: conventional commits with the domain as scope, issue number at the end:
@@ -43,7 +46,7 @@ Agents never push to `develop` or `main` directly and never open the `develop` �
 
 ```bash
 git push -u origin HEAD
-gh pr create --base develop --title "feat: <same outcome as the issue title>" --body-file pr.md
+gh pr create --base "$BASE" --title "feat: <same outcome as the issue title>" --body-file pr.md
 gh issue edit <n> --add-label "status: in review" --remove-label "status: in progress"
 ```
 
@@ -103,7 +106,7 @@ one-line change.
 
 ## 4. Finish
 
-- **Approved** (both latest verdicts `approve`, CI green, branch up to date with `develop`):
+- **Approved** (both latest verdicts `approve`, CI green, branch up to date with `$BASE`):
   `gh pr merge <pr> --merge --delete-branch`. The issue closes through `Closes #<n>`; remove
   `agent` and the review label from the issue if they stay.
   If branch protection requires a human approval, stop at this point and ask for it in a comment.
