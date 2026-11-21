@@ -78,9 +78,21 @@ Każde repo aplikacji ma `.github/workflows/ci.yml` z jednym uruchomieniem na co
 
 - CI (lint, typy, testy, build) działa na runnerach GCP z etykietą `meritum`, na każdej gałęzi.
 - CD działa na runnerze `dellpromaxgb10`, tylko dla `develop` (dev) i `main` (prd), po zielonym CI. Deploy buduje obraz na hoście (ARM64), podmienia kontener i sprawdza go: API odpowiada na `/api/v1/health` i przepuszcza zadanie `ping` przez workera, frontend i makiety odpowiadają przez gateway pod swoimi adresami.
-- Wtyczka nie ma serwera: na `develop` i `main` CI buduje zip z adresem API danego środowiska i zostawia go jako artefakt przebiegu. Marketing nie ma CI.
+- Wtyczka nie ma serwera: na `develop` i `main` CI buduje zip z adresem API danego środowiska i zostawia go jako artefakt przebiegu. Marketing nie ma CI poza skanem sekretów.
 
 Zmiany idą przez PR do `develop`, wydanie przez PR `develop` → `main`. Nie pushuj bezpośrednio do `develop` ani `main`. Organizacja jest na planie Free, który nie chroni gałęzi w repozytoriach prywatnych, więc pilnujemy tego sami. Gałąź funkcji usuwaj po merge'u (`gh pr merge --delete-branch`). Automatyczne usuwanie gałęzi jest wyłączone, bo skasowałoby też `develop` po PR `develop` → `main`.
+
+## Sekrety i zależności
+
+W każdym repo działa `.github/workflows/secrets.yml`: gitleaks przegląda całą historię gita przy każdym pushu i PR, a każde znalezisko oblewa przebieg. Lokalnie ten sam gitleaks blokuje push z sekretem, zanim commit opuści komputer (hook `.githooks/pre-push`). Włącz go raz po sklonowaniu:
+
+```bash
+brew install gitleaks && scripts/setup-git-hooks.sh
+```
+
+Skrypt ustawia `core.hooksPath` w monorepo i we wszystkich submodułach. W pojedynczym repo wystarczy `git config core.hooksPath .githooks`. Fałszywy alarm dopisz z uzasadnieniem do `.gitleaks.toml` w tym repo, zamiast pushować z `--no-verify`.
+
+Dependabot otwiera w poniedziałki PR-y z aktualizacjami według `.github/dependabot.yml`. Wersje drobne i poprawkowe trafiają do jednego PR na ekosystem, główne do osobnych, a tam, gdzie jest `develop`, PR idzie do `develop`. Wersję meritum-core w backendzie i workerze podbija workflow w core, Dependabot jej nie rusza.
 
 ## Uruchomienie lokalne jednym poleceniem
 
