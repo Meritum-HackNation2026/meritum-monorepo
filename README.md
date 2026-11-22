@@ -1,243 +1,228 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/meritum-logo-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset="assets/meritum-logo-light.png">
+    <img src="assets/meritum-logo-light.png" alt="Meritum, obywatelski radar dezinformacji" width="366">
+  </picture>
+</p>
+
 # meritum-monorepo
 
-Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (HackNation 2026, konkurs MSZ „Prawdowid”). Samo nie zawiera kodu produktu. Łączy pozostałe repozytoria organizacji jako submoduły git, przypięte do konkretnych commitów.
+Meritum sprawdza informacje dla obywatela. Wklejasz tekst albo link i dostajesz werdykt dla każdego twierdzenia, z dosłownymi cytatami ze źródeł. Prototyp powstaje na HackNation 2026 w konkursie MSZ „Prawdowid”.
 
-## Działające środowiska
+To repozytorium nie zawiera kodu produktu. Łączy pozostałe repozytoria organizacji jako submoduły git przypięte do commitów i trzyma rzeczy wspólne: `docker-compose.yml` do uruchomienia całości, skrypty oraz zasady pracy w [AGENTS.md](AGENTS.md).
 
-### Aplikacja webowa i API
+Spis treści: [co działa dziś](#co-działa-dziś) · [budowa](#jak-to-jest-zbudowane) · [repozytoria](#repozytoria) · [środowiska](#środowiska) · [uruchomienie lokalne](#uruchomienie-lokalne) · [dla jury](#dla-jury) · [praca w repozytoriach](#praca-w-repozytoriach)
 
-| Nazwa | Wersja | Przeznaczenie | Link |
-|---|---|---|---|
-| Aplikacja webowa | prd | formularz sprawdzania twierdzeń | [meritum.gburek.app](https://meritum.gburek.app) |
-| Aplikacja webowa | dev | formularz sprawdzania twierdzeń | [meritum-dev.gburek.app](https://meritum-dev.gburek.app) |
-| API | prd | dokumentacja OpenAPI (Swagger UI) | [meritum.gburek.app/api/docs](https://meritum.gburek.app/api/docs) |
-| API | dev | dokumentacja OpenAPI (Swagger UI) | [meritum-dev.gburek.app/api/docs](https://meritum-dev.gburek.app/api/docs) |
-| API: stan | prd | health: API, baza danych i środowisko | [meritum.gburek.app/api/v1/health](https://meritum.gburek.app/api/v1/health) |
-| API: stan | dev | health: API, baza danych i środowisko | [meritum-dev.gburek.app/api/v1/health](https://meritum-dev.gburek.app/api/v1/health) |
+## Co działa dziś
 
-### Makiety platform
+Każdy kanał wysyła to samo zapytanie do jednego API, więc to samo pytanie daje ten sam wynik.
 
-| Nazwa | Wersja | Przeznaczenie | Link |
-|---|---|---|---|
-| Makieta X | prd | makieta platformy do demo wtyczki | [meritum-x.gburek.app](https://meritum-x.gburek.app) |
-| Makieta Facebook | prd | makieta platformy do demo wtyczki | [meritum-facebook.gburek.app](https://meritum-facebook.gburek.app) |
-| Makieta Instagram | prd | makieta platformy do demo wtyczki | [meritum-instagram.gburek.app](https://meritum-instagram.gburek.app) |
-| Makieta Reddit | prd | makieta platformy do demo wtyczki | [meritum-reddit.gburek.app](https://meritum-reddit.gburek.app) |
-| Makieta TikTok | prd | makieta platformy do demo wtyczki | [meritum-tiktok.gburek.app](https://meritum-tiktok.gburek.app) |
-| Makieta Discord | prd | rozmowa z Meritum przez formularz w makiecie | [meritum-discord.gburek.app](https://meritum-discord.gburek.app) |
+| Kanał | Co potrafi | Gdzie |
+|---|---|---|
+| Formularz WWW | tekst, link, nagranie głosowe, zrzut ekranu; logowanie kontem Google albo Microsoft jest opcjonalne | prd i dev |
+| Discord | komenda `/sprawdz` i „Sprawdź w Meritum” w menu wiadomości; wzmianki i wiadomości prywatne obsługuje osobny proces Gateway | prd i dev |
+| Wtyczka do przeglądarki | przycisk „Sprawdź” pod postami na X, Facebooku, Instagramie, Reddicie i TikToku oraz okienko w popupie | paczki w Releases |
+| Konektor MCP | narzędzia `check_claim` i `search_sources` dla aplikacji czatu AI | prd i dev |
+| SMS | odpowiedź z werdyktem na SMS wysłany na numer bramki | tylko dev |
 
-### Wtyczka Chrome
+Poza kanałami działa panel personelu: kolejka spraw moderatora, konta, tematy wysokiego ryzyka, eksport dla analityka i strona ewaluacji pod `/panel/eval`.
 
-| Nazwa | Wersja | Przeznaczenie | Link |
-|---|---|---|---|
-| Wtyczka Chrome | prd | zip do załadowania w chrome://extensions (artefakt `meritum-extension-prd` w przebiegu CI) | [przebiegi CI na `main`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess) |
+Rzeczy w toku:
 
-### Discord
+- Strona WWW zmienia wygląd ([epik #39](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/39)). Na `develop` frontendu są już nowy motyw i nowa belka ze stopką, więc widać je na dev. Strona główna, „Jak działa”, menu „Wygląd” i strona sprawdzenia są w budowie. Prd pokazuje poprzedni wygląd.
+- SMS przechodzi przez telefon z Androidem i aplikację SMS Gateway for Android ([sms-gate.app](https://docs.sms-gate.app/)). Webhook jest zarejestrowany tylko dla dev, bo oba środowiska dzielą jeden telefon.
+- Kosztu 1 000 zapytań jeszcze nie zmierzyliśmy ([#30](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/30)).
+- Środowisko w GCP jest opisane w meritum-infra, ale nie jest wdrożone. Na hackathon wszystko działa na serwerze zespołu.
 
-| Nazwa | Wersja | Przeznaczenie | Link |
-|---|---|---|---|
-| Discord: Meritum | prd | dodanie aplikacji do konta albo serwera; komendy /sprawdz i „Sprawdź w Meritum” przy wiadomości | [zainstaluj „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396) |
-| Discord: Meritum dev | dev | dodanie aplikacji do konta albo serwera; komendy /sprawdz i „Sprawdź w Meritum” przy wiadomości | [zainstaluj „Meritum dev”](https://discord.com/oauth2/authorize?client_id=1573690220782559332) |
+## Jak to jest zbudowane
 
-`prd` wdraża się z gałęzi `main`, `dev` z gałęzi `develop` (tylko frontend, backend i worker). Makiety i wtyczka mają tylko `main`, więc nie mają już wersji dev. Worker DBOS nie ma publicznego adresu; to, że działa, widać po zadaniu `ping` w deployu API.
+```mermaid
+flowchart LR
+    subgraph kanaly [Kanały]
+        www[Formularz WWW]
+        wtyczka[Wtyczka]
+        discord[Discord]
+        sms[SMS]
+        mcp[Klient MCP]
+    end
+    api[API<br/>meritum-backend]
+    worker[Worker DBOS<br/>meritum-worker]
+    db[(PostgreSQL<br/>pgvector)]
+    zewn[Model językowy,<br/>wyszukiwanie w sieci,<br/>Fact Check Tools API]
 
-## Nawigacja
+    www --> api
+    wtyczka --> api
+    discord --> api
+    sms --> api
+    mcp --> api
+    api -- zleca sprawdzenie --> worker
+    api --- db
+    worker --- db
+    worker --> zewn
+```
 
-Dokumentacja użytkownika i zespołu jest dostępna na [meritum-docs.pages.dev](https://meritum-docs.pages.dev).
+API przyjmuje zapytanie, maskuje dane osobowe, liczy limity i zleca sprawdzenie workerowi przez kolejkę DBOS. Postęp i wynik klient czyta po identyfikatorze sprawdzenia albo ze strumienia SSE.
+
+Worker wykonuje sprawdzenie jako jeden workflow. Pobiera stronę z linku albo zamienia nagranie na tekst, szuka w treści ukrytych poleceń i wyodrębnia najwyżej 5 twierdzeń. Dowodów szuka w korpusie, w sieci (tylko w domenach z katalogu źródeł) i wśród ocen fact-checkerów. Potem porównuje źródła z twierdzeniami, odrzuca cytaty, których nie ma dosłownie w tekście źródła, pisze odpowiedź i zapisuje przebieg.
+
+Kontrakty danych, porty, adaptery i reguły werdyktu są w meritum-core, z którego korzystają API i worker. Model językowy, wyszukiwarkę i pozostałych dostawców wybiera konfiguracja.
+
+Więcej: [sprawdzenie krok po kroku](https://github.com/Meritum-HackNation2026/meritum-docs/blob/main/docs/jak-dziala/sprawdzenie.md), [kanały](https://github.com/Meritum-HackNation2026/meritum-docs/blob/main/docs/kanaly.md) i [architektura](https://github.com/Meritum-HackNation2026/meritum-docs/tree/main/docs/architektura) w meritum-docs. Ta sama dokumentacja jest na [meritum-docs.pages.dev](https://meritum-docs.pages.dev), za logowaniem Cloudflare Access.
+
+## Repozytoria
 
 | Katalog | Repozytorium | Zawartość |
 |---|---|---|
-| `backend/` | [meritum-backend](https://github.com/Meritum-HackNation2026/meritum-backend) | API w FastAPI, adaptery Discorda, SMS i MCP, zlecanie zadań przez DBOS |
-| `worker/` | [meritum-worker](https://github.com/Meritum-HackNation2026/meritum-worker) | workery DBOS do długich operacji w tle, na PostgreSQL |
-| `core/` | [meritum-core](https://github.com/Meritum-HackNation2026/meritum-core) | kod wspólny backendu i workerów: kontrakty zadań, porty, adaptery |
-| `frontend/` | [meritum-frontend](https://github.com/Meritum-HackNation2026/meritum-frontend) | formularz WWW i panel personelu (React, pnpm), serwowane przez nginx, który przekazuje `/api` do backendu |
-| `extension/` | [meritum-extension](https://github.com/Meritum-HackNation2026/meritum-extension) | wtyczka Chrome MV3 (WXT, React): przycisk „Sprawdź” pod postami |
-| `mocks/` | [meritum-mocks](https://github.com/Meritum-HackNation2026/meritum-mocks) | makiety X, Facebooka, Instagrama, Reddita, TikToka i Discorda z backendem w Hono |
-| `marketing/` | [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing) | deck, film i grafiki na konkurs MSZ |
-| `design-system/` | [meritum-design-system](https://github.com/Meritum-HackNation2026/meritum-design-system) | dokument produktowy, kontrakty domenowe, system projektowy, teksty, źródłowe makiety platform |
-| `docs/` | [meritum-docs](https://github.com/Meritum-HackNation2026/meritum-docs) | dokumentacja aplikacji (Zensical, Cloudflare Pages) |
-| `infra/` | [meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra) | runnery GitHub Actions (GCP i dellpromaxgb10) oraz wspólna platforma na dellpromaxgb10: PostgreSQL, gateway, trasy Cloudflare |
-| `org-profile/` | [.github](https://github.com/Meritum-HackNation2026/.github) | publiczny profil organizacji na GitHubie (`profile/README.md`) |
-| `scripts/` | (to repozytorium) | skrypty pomocnicze |
+| `core/` | [meritum-core](https://github.com/Meritum-HackNation2026/meritum-core) | kontrakty, porty, adaptery, reguły domenowe, katalog źródeł |
+| `backend/` | [meritum-backend](https://github.com/Meritum-HackNation2026/meritum-backend) | API w FastAPI i kanały wejściowe: WWW, Discord, SMS, MCP |
+| `worker/` | [meritum-worker](https://github.com/Meritum-HackNation2026/meritum-worker) | workflowy DBOS: sprawdzenie, zasilanie korpusu, retencja, ewaluacja |
+| `frontend/` | [meritum-frontend](https://github.com/Meritum-HackNation2026/meritum-frontend) | aplikacja webowa i panel personelu (React), serwowane przez nginx |
+| `extension/` | [meritum-extension](https://github.com/Meritum-HackNation2026/meritum-extension) | wtyczka do przeglądarki (Manifest V3, WXT) |
+| `mocks/` | [meritum-mocks](https://github.com/Meritum-HackNation2026/meritum-mocks) | makiety platform i makieta Discorda (Hono) |
+| `infra/` | [meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra) | runnery CI, platforma na serwerze zespołu, Terraform dla GCP |
+| `design-system/` | [meritum-design-system](https://github.com/Meritum-HackNation2026/meritum-design-system) | dokument produktowy, tokeny, komponenty, teksty interfejsu |
+| `docs/` | [meritum-docs](https://github.com/Meritum-HackNation2026/meritum-docs) | dokumentacja (Zensical, Cloudflare Pages) |
+| `marketing/` | [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing) | deck, film i opis do zgłoszenia konkursowego |
+| `org-profile/` | [.github](https://github.com/Meritum-HackNation2026/.github) | profil organizacji, formularze zgłoszeń, szablon PR |
 
-## Infrastruktura środowisk
+Poza profilem organizacji repozytoria są na razie prywatne.
 
-| Środowisko | Gałąź | Kontenery na dellpromaxgb10 | Schematy w bazie `meritum` | Baza z tabelami w schemacie `dbos` |
-|---|---|---|---|---|
-| dev | `develop` (frontend, backend, worker) | `meritum-web-dev`, `meritum-api-dev`, `meritum-worker-dev` | `app_dev` | `meritum_dbos_dev` |
-| prd | `main` | `meritum-web-prd`, `meritum-api-prd`, `meritum-worker-prd`, `meritum-mocks-prd` | `app_prd`, `mocks_prd` | `meritum_dbos_prd` |
+## Środowiska
 
-Kontener `meritum-mocks-dev` i schemat `mocks_dev` zostały po dawnym przepływie makiet i nie dostają nowych wersji.
-
-Oba środowiska dzielą kontener PostgreSQL (`meritum-postgres`, pgvector i pg_trgm). W każdym środowisku API i worker korzystają ze wspólnego schematu `app_<env>`. Rola `meritum_worker_<env>` jest jego właścicielem i wykonuje migracje. Rola `meritum_api_<env>` czyta i zapisuje dane bez uprawnień do zmiany struktury tabel. Worker zarządza też bazą DBOS swojego środowiska i nadaje API dostęp potrzebny do kolejkowania zadań. `worker_dev` i `worker_prd` to nazwy schematów z poprzedniego układu.
-
-Schemat `corpus` w bazie `meritum` jest wspólny. Tylko `meritum_worker_prd` zapisuje dane i wykonuje migracje. API obu środowisk i worker dev mają dostęp do odczytu. Szczegóły opisuje [README meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra/blob/main/README.md).
-
-## Kanały sprawdzania
-
-Formularz WWW, wtyczka Chrome, Discord, SMS i MCP korzystają ze wspólnego procesu sprawdzania w API i workerze. Discord przyjmuje komendę `/sprawdz` i akcję z menu wiadomości. Osobny proces Gateway przyjmuje też wzmianki i wiadomości prywatne. SMS trafia do API przez webhook bramki, obecnie zarejestrowany tylko dla dev. Konfigurację kanałów opisuje [README backendu](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md).
-
-### Konektor MCP
-
-Konektor działa pod `https://meritum-dev.gburek.app/mcp` (dev) i `https://meritum.gburek.app/mcp` (prd). Używa transportu Streamable HTTP i wymaga klucza API albo tokenu OAuth. Narzędzie `check_claim` sprawdza twierdzenie, a `search_sources` przeszukuje katalog źródeł. Sposób podłączenia klienta opisuje [sekcja MCP w README backendu](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md#konektor-mcp).
-
-### Ewaluacja
-
-W repozytorium workera polecenie `uv run meritum-eval` uruchamia sprawdzanie na zestawie referencyjnym. Opcja `--cases` przyjmuje własny plik JSON lub CSV. Raport obejmuje m.in. trafność werdyktów, pokrycie cytatami, zgodność wyników między kanałami oraz czas i koszt sprawdzeń. Pełne przebiegi wykonuje się poza CI. Szczegóły są w [README workera](https://github.com/Meritum-HackNation2026/meritum-worker/blob/develop/README.md#ewaluacja).
-
-W aplikacji wyniki ewaluacji są w panelu pod `/panel/eval`. Administrator może nadać jurorowi dostęp do odczytu przez [jednorazowy link](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md#jednorazowy-link-jury-32).
-
-## CI/CD
-
-Każde repo aplikacji ma `.github/workflows/ci.yml` z jednym uruchomieniem na commit:
-
-- CI (lint, typy, testy, build) działa na runnerach GCP z etykietą `meritum`, na każdej gałęzi.
-- CD działa na runnerze `dellpromaxgb10` po zielonym CI: `develop` na dev (frontend, backend, worker) i `main` na prd (te trzy oraz makiety). Deploy buduje obraz na hoście (ARM64), podmienia kontener i sprawdza go: API odpowiada na `/api/v1/health` i przepuszcza zadanie `ping` przez workera, frontend i makiety odpowiadają przez gateway pod swoimi adresami.
-- Wtyczka nie ma serwera: na `main` CI buduje zip z adresem API prd i zostawia go jako artefakt przebiegu. Marketing nie ma CI poza skanem sekretów.
-
-W meritum-frontend, meritum-backend i meritum-worker zmiany idą przez PR do `develop`, a wydanie przez PR `develop` → `main`. Pozostałe repozytoria mają tylko `main` i zmiany idą przez PR do `main`. Nie pushuj bezpośrednio do `develop` ani `main`. Organizacja jest na planie Free, który nie chroni gałęzi w repozytoriach prywatnych, więc pilnujemy tego sami. Gałąź funkcji usuwaj po merge'u (`gh pr merge --delete-branch`). Automatyczne usuwanie gałęzi jest wyłączone, bo w trzech repozytoriach z `develop` skasowałoby go po PR `develop` → `main`.
-
-## Sekrety i zależności
-
-W każdym repo działa `.github/workflows/secrets.yml`: gitleaks przegląda całą historię gita przy każdym pushu i PR, a każde znalezisko oblewa przebieg. Lokalnie ten sam gitleaks blokuje push z sekretem, zanim commit opuści komputer (hook `.githooks/pre-push`). Włącz go raz po sklonowaniu:
-
-```bash
-brew install gitleaks && scripts/setup-git-hooks.sh
-```
-
-Skrypt ustawia `core.hooksPath` w monorepo i we wszystkich submodułach. W pojedynczym repo wystarczy `git config core.hooksPath .githooks`. Fałszywy alarm dopisz z uzasadnieniem do `.gitleaks.toml` w tym repo, zamiast pushować z `--no-verify`.
-
-Dependabot otwiera w poniedziałki PR-y z aktualizacjami według `.github/dependabot.yml`. Wersje drobne i poprawkowe trafiają do jednego PR na ekosystem. Wersji głównych ani nowego Pythona w obrazach Dependabot nie proponuje. PR idzie do domyślnej gałęzi repozytorium (`develop` we frontendzie, backendzie i workerze, `main` w pozostałych). Wersję meritum-core w backendzie i workerze podbija workflow w core, Dependabot jej nie rusza.
-
-## Jak przetestować Meritum (jury)
-
-Są dwie ścieżki. Żadna nie wymaga pomocy zespołu.
-
-| Ścieżka | Co trzeba mieć | Klucze |
+| | prd (gałąź `main`) | dev (gałąź `develop`) |
 |---|---|---|
-| Publiczne demo | przeglądarkę | żadnych |
-| Lokalnie | Docker z Compose 2.24+, git, klucz SSH z dostępem do organizacji (do czasu upublicznienia meritum-core) | żadnych na stubach; własne klucze Google Cloud dla prawdziwego modelu |
+| Aplikacja webowa | [meritum.gburek.app](https://meritum.gburek.app) | [meritum-dev.gburek.app](https://meritum-dev.gburek.app) |
+| Dokumentacja API | [/api/docs](https://meritum.gburek.app/api/docs) | [/api/docs](https://meritum-dev.gburek.app/api/docs) |
+| Stan usług | [/api/v1/health](https://meritum.gburek.app/api/v1/health) | [/api/v1/health](https://meritum-dev.gburek.app/api/v1/health) |
+| Konektor MCP | `https://meritum.gburek.app/mcp` | `https://meritum-dev.gburek.app/mcp` |
+| Discord | [zainstaluj „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396) | [zainstaluj „Meritum dev”](https://discord.com/oauth2/authorize?client_id=1573690220782559332) |
 
-### Publiczne demo
+Dev ma tylko frontend, backend i worker. Makiety i wtyczka wychodzą wyłącznie z `main`:
 
-- Formularz WWW: [meritum.gburek.app](https://meritum.gburek.app). Wklej tekst albo link i kliknij „Sprawdź”.
-- Discord: [zainstaluj „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396), potem `/sprawdz` albo „Sprawdź w Meritum” w menu wiadomości.
-- Makieta Discorda: otwórz [meritum-discord.gburek.app](https://meritum-discord.gburek.app) i wyślij twierdzenie z formularza, bez konta Discord.
-- Wtyczka Chrome (opcjonalnie, poniżej 2 minut): pobierz artefakt `meritum-extension-prd` z [ostatniego przebiegu CI na `main`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess), rozpakuj, otwórz `chrome://extensions`, włącz „Tryb dewelopera”, kliknij „Załaduj rozpakowane” i wskaż katalog. Przycisk „Sprawdź” pojawi się pod postami na makietach platform.
+- makiety platform: [X](https://meritum-x.gburek.app), [Facebook](https://meritum-facebook.gburek.app), [Instagram](https://meritum-instagram.gburek.app), [Reddit](https://meritum-reddit.gburek.app), [TikTok](https://meritum-tiktok.gburek.app) i [Discord](https://meritum-discord.gburek.app),
+- wtyczka: paczki dla Chrome, Edge i Firefoksa w [Releases meritum-extension](https://github.com/Meritum-HackNation2026/meritum-extension/releases).
 
-### Lokalnie jednym poleceniem
+Oba środowiska działają na serwerze zespołu (`dellpromaxgb10`) za tunelem Cloudflare i dzielą jeden kontener PostgreSQL. Każde ma własny schemat `app_<env>` i własną bazę DBOS, a schemat `corpus` jest wspólny i zapisuje do niego tylko worker prd. Worker nie ma publicznego adresu. Układ bazy, ról i kontenerów opisuje [README meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra/blob/main/README.md).
+
+## Uruchomienie lokalne
+
+Potrzebujesz Dockera z Compose 2.24 lub nowszym, gita i klucza SSH z dostępem do organizacji. Submoduły używają adresów SSH, a obrazy API i workera pobierają przy budowaniu prywatne meritum-core.
 
 ```bash
 git clone --recurse-submodules git@github.com:Meritum-HackNation2026/meritum-monorepo.git
 cd meritum-monorepo
-ssh-add ~/.ssh/id_ed25519    # klucz z dostępem do organizacji (meritum-core jest na razie prywatne)
+ssh-add ~/.ssh/id_ed25519    # klucz z dostępem do organizacji
 cp .env.example .env         # opcjonalnie: własne klucze
 docker compose up --build
 ```
 
 | Adres | Co |
 |---|---|
-| http://localhost:8080 | aplikacja webowa z formularzem (nginx przekazuje `/api` do API) |
+| http://localhost:8080 | aplikacja webowa (nginx przekazuje `/api` do API) |
 | http://localhost:8080/api/docs | dokumentacja API |
 | http://localhost:8080/api/v1/health | test gotowości: baza, worker, brakujące zmienne |
-| http://localhost:3000 | makiety platform (`/x/`, `/facebook/`, `/instagram/`, `/reddit/`, `/tiktok/`, `/discord/`) |
+| http://localhost:3000 | makiety: `/x/`, `/facebook/`, `/instagram/`, `/reddit/`, `/tiktok/`, `/discord/` |
 
-`docker-compose.yml` uruchamia PostgreSQL z obrazu meritum-infra (pgvector i polski słownik), workera DBOS, API, frontend i makiety. API i worker dzielą wolumen `files` na nagrania i obrazy (adapter systemu plików `BlobStore`, ADR-31). Lokalny Compose używa jednej bazy i jednej roli, z tabelami DBOS w schemacie `worker_local`.
+Bez pliku `.env` system startuje na stubach i nic nie opuszcza komputera. Model językowy odpowiada wtedy z `config/llm-stub.json`, a embeddingi i transkrypcja też są stubami. Każda zmienna w [.env.example](.env.example) ma opis. Gdy brakuje klucza, `/api/v1/health` podaje jego nazwę, a sprawdzenie kończy się stanem „Problem techniczny” zamiast werdyktu.
 
-Każda zmienna w `.env.example` ma opis. Bez pliku `.env` system startuje na stubach z lokalną, jawną solą `MERITUM_CHANNEL_HASH_SALT` (poza własnym komputerem ustaw własną): model językowy odpowiada z `config/llm-stub.json`, a embeddingi i transkrypcja też są stubami. Prawdziwy model to `MERITUM_LLM_PROVIDER=vertex` z modelem, regionem UE i projektem Google Cloud oraz Application Default Credentials w kontenerze workera.
+Compose uruchamia PostgreSQL z obrazu meritum-infra (pgvector i polski słownik), workera, API, frontend i makiety. Proces Gateway Discorda jest w profilu `discord` i wymaga `MERITUM_DISCORD_BOT_TOKEN`:
 
-Gdy brakuje klucza, test gotowości wypisuje jego nazwę (nigdy wartości) w logu startu i w `/api/v1/health`, a API odpowiada na pytania stanem „Problem techniczny” zamiast werdyktu (US-BEZ-03, US-WDR-08).
+```bash
+docker compose --profile discord up --build
+```
 
-### Bot na Discordzie (proces Gateway)
-
-Wzmianki bota na serwerze i wiadomości prywatne obsługuje osobny proces z tego samego obrazu co API (`python -m meritum_backend.discord.gateway`, meritum-backend#39). W compose to usługa `gateway` w profilu `discord`, więc zwykłe `docker compose up` jej nie uruchamia i reszta systemu działa bez tokenu. Żeby ją włączyć:
-
-1. W `.env` ustaw `MERITUM_DISCORD_BOT_TOKEN` (token bota z portalu deweloperskiego Discorda).
-2. Uruchom `docker compose --profile discord up --build`, albo dopisz do `.env` `COMPOSE_PROFILES=discord` i uruchamiaj zwykłe `docker compose up`.
-
-Bez tokenu proces loguje błąd i kończy się kodem 1 (compose ponawia start trzy razy), a API, worker, frontend i makiety działają dalej. Interakcje HTTP (komendy `/sprawdz` i „Sprawdź w Meritum”) idą nadal przez endpoint API (`MERITUM_DISCORD_PUBLIC_KEY`) i od Gateway nie zależą. Konfigurację compose sprawdza lokalnie `scripts/check-compose.sh` (bez kontenerów, poza CI). Gateway potrzebuje backendu z procesem Gateway, czyli submodułu po promocji `develop` → `main` (`scripts/update-submodules.sh`).
-
-### Test dymny
+Test dymny uruchamia całość, czeka na gotowość i wysyła jedno sprawdzenie na stubie modelu. Działa tylko lokalnie, poza CI:
 
 ```bash
 scripts/smoke.sh                 # zostawia system uruchomiony
 SMOKE_DOWN=1 scripts/smoke.sh    # na końcu zatrzymuje compose
 ```
 
-Skrypt uruchamia `docker compose up --build`, czeka na `/api/v1/health` i wysyła jedno sprawdzenie tekstu na stubie modelu, a potem czeka na wynik. Działa tylko lokalnie i ręcznie; nie należy do żadnego CI, bo wymaga kontaktu między usługami. Potrzebuje backendu i workera z endpointem `/api/v1/checks`, czyli submodułów po promocji `develop` → `main` (`scripts/update-submodules.sh`).
+Samą konfigurację compose, bez kontenerów, sprawdza `scripts/check-compose.sh`.
 
-### Miejsce przetwarzania (rejestr podmiotów przetwarzających, ADR-14)
+## Dla jury
 
-| Podmiot | Co przetwarza | Region | Kiedy |
-|---|---|---|---|
-| Google Cloud Vertex AI | tekst pytania (po maskowaniu), fragmenty źródeł; model językowy i embeddingi | UE (`europe-central2` / `europe-west4`; Londyn i Zurych odrzucane) | `MERITUM_LLM_PROVIDER=vertex`, `MERITUM_EMBEDDINGS_PROVIDER=vertex` |
-| Google Cloud Sensitive Data Protection (DLP) | tekst pytania przed modelem, maskowanie danych osobowych | UE (`MERITUM_PII_LOCATION`, domyślnie Warszawa) | `MERITUM_PII_GATE=sdp` |
-| Google Cloud Model Armor albo Cloudflare Workers AI | tekst pytania i źródeł, klasyfikacja wstrzyknięć poleceń | Model Armor: region UE projektu; Cloudflare: sieć globalna, poza UE | `MERITUM_INJECTION_GATE_PROVIDER` |
-| Google Cloud Speech-to-Text v2 | nagrania głosowe (transkrypcja) | UE | `MERITUM_TRANSCRIPTION_PROVIDER=speech_v2` |
-| Discord | wiadomości i identyfikator użytkownika kanału (u nas tylko solony skrót) | USA | kanał Discord |
-| Cloudflare | ruch HTTP publicznego demo (tunel, ochrona przed DDoS) | sieć globalna | publiczne demo |
+### Publiczne demo
 
-Lokalnie, na stubach, nic nie opuszcza komputera.
+Żaden z tych kroków nie wymaga konta ani kluczy.
+
+1. Otwórz [meritum.gburek.app](https://meritum.gburek.app), wklej tekst albo link i kliknij „Sprawdź”.
+2. Otwórz [makietę Discorda](https://meritum-discord.gburek.app) i wyślij to samo twierdzenie. Makieta woła to samo API co prawdziwy bot.
+3. Jeśli masz konto Discord, [zainstaluj aplikację „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396) i użyj `/sprawdz`.
+
+Wtyczka jest opcjonalna. Pobierz paczkę z [Releases](https://github.com/Meritum-HackNation2026/meritum-extension/releases), rozpakuj ją, w `chrome://extensions` włącz „Tryb dewelopera” i wybierz „Załaduj rozpakowane”. Przycisk „Sprawdź” pojawi się pod postami na makietach platform.
+
+Wyniki ewaluacji są w aplikacji pod `/panel/eval`. Administrator może dać jurorowi dostęp do odczytu [jednorazowym linkiem](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md#jednorazowy-link-jury-32). Zestaw referencyjny można też przeliczyć samemu poleceniem `uv run meritum-eval` z [meritum-worker](https://github.com/Meritum-HackNation2026/meritum-worker/blob/develop/README.md#ewaluacja).
+
+### Gdzie przetwarzane są dane
+
+| Co | Kto | Gdzie |
+|---|---|---|
+| API, worker, baza z zapisami sprawdzeń i korpusem | serwer zespołu | Polska |
+| cały ruch HTTP publicznego demo | Cloudflare (tunel kończy TLS) | USA |
+| model językowy | Claude Haiku 5.5 przez OpenRouter, tylko endpointy bez retencji danych | poza EOG |
+| embeddingi, maskowanie danych osobowych, przesłane pliki | Google Cloud | `europe-central2` (Warszawa) |
+| transkrypcja nagrań | Google Speech-to-Text v2 | multi-region `eu` |
+| wyszukiwanie w sieci | Vertex AI Search | `global`, poza UE |
+| oceny fact-checkerów | Google Fact Check Tools API | poza EOG |
+| kanały | Discord, sms-gate.app | USA; sms-gate.app nie podaje regionu |
+| logowanie (opcjonalne) | Google i Microsoft | USA |
+
+Do modelu i do wyszukiwarek trafia tekst po zamaskowaniu danych osobowych. Pełny rejestr, razem z dostawcami opcjonalnymi, jest w [`copy/privacy.json`](https://github.com/Meritum-HackNation2026/meritum-design-system/blob/main/copy/privacy.json) w meritum-design-system (ADR-14).
 
 ### Bramki przed modelem
 
-| Bramka | Dostawca | Region | Koszt | Gdy wyłączona |
-|---|---|---|---|---|
-| Maskowanie danych osobowych (DLP) | Google Sensitive Data Protection | UE | [cennik inspekcji treści](https://cloud.google.com/sensitive-data-protection/pricing) | działają tylko wzorce telefonu, e-maila i PESEL-u; log zapisuje pominięcie bramki |
-| Klasyfikator wstrzyknięć | Google Model Armor albo Cloudflare Workers AI | UE albo globalnie | [Model Armor](https://cloud.google.com/security-command-center/pricing), [Workers AI](https://developers.cloudflare.com/workers-ai/platform/pricing/) | działają wzorce PL/EN z meritum-core, treść użytkownika i źródeł trafia do modelu wyłącznie jako dane, a log zapisuje pominięcie bramki |
-| Reranker | jeszcze brak (ADR-14 przewiduje dostawcę w UE) | brak | 0 zł | wyniki wyszukiwania zostają w kolejności z wyszukiwarki |
+Maskowanie danych osobowych robi Google Sensitive Data Protection w regionie UE. Gdy bramka jest wyłączona, zostają wzorce telefonu, e-maila, PESEL-u i numeru dowodu, a log zapisuje pominięcie.
 
-### Koszty, limity i zachowanie pod obciążeniem (ADR-18)
+Wstrzyknięcia poleceń zawsze sprawdzają wzorce PL/EN z meritum-core, a treść użytkownika i źródeł trafia do modelu wyłącznie jako dane. Zewnętrzny klasyfikator (Model Armor albo Cloudflare Workers AI) jest opcjonalny.
 
-Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord` (US-OBS-02). Koszt 1 000 zapytań, koszt utrzymania kanałów, koszt i limity transkrypcji oraz odsetek trafień w pamięci wyników podajemy tylko zmierzone, z datą pomiaru; do czasu pomiaru zostają z cennikiem dostawcy zamiast liczby (pierwszy pomiar: monorepo#30).
+Reranker fragmentów ma trzy adaptery w workerze i domyślnie jest wyłączony. Wyniki zostają wtedy w kolejności z wyszukiwarki. Dostawców, regiony i cenniki bramek opisuje [README meritum-worker](https://github.com/Meritum-HackNation2026/meritum-worker/blob/develop/README.md#bramka-klasyfikatora-wstrzyknięć).
 
-Pomiar powtarza ręczny przebieg poza CI (ADR-28): sprawdzenia na prawdziwych dostawcach w dev, eksport ich `CheckRecord` do pliku JSON lines (jeden rekord w wierszu), potem:
+### Koszty i limity
+
+Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord`. Koszt 1 000 zapytań, koszt utrzymania kanałów i odsetek trafień w pamięci wyników podamy dopiero po pomiarze, z datą ([#30](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/30)). Pomiar robi się ręcznie, poza CI:
 
 ```bash
-python scripts/measure_costs.py records.jsonl   # wiersze tabeli z datą, rozbicie wg dostawcy i modelu oraz kanału
-cd worker && uv run meritum-cost ../records.jsonl  # to samo podsumowanie z meritum-worker (worker#26)
+python scripts/measure_costs.py records.jsonl      # eksport CheckRecord, jeden rekord w wierszu
+cd worker && uv run meritum-cost ../records.jsonl  # to samo podsumowanie z meritum-worker
 ```
 
-Utrzymanie kanałów (WWW, wtyczka, Discord) nie wynika z rekordów sprawdzeń: bierzemy je z rozliczenia projektu GCP i Cloudflare za pełny miesiąc, z datą okresu.
+Nagranie może mieć do 20 MiB i 10 minut. Plik i wynik sprawdzenia są usuwane po 30 dniach.
 
-| Pozycja | Wartość |
-|---|---|
-| Koszt 1 000 zapytań (model, embeddingi, bramki, wyszukiwarka) | do pomiaru (`scripts/measure_costs.py`); składowe: [Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/pricing) i bramki wyżej |
-| Utrzymanie kanałów: WWW, wtyczka, Discord | do pomiaru (rozliczenie GCP i Cloudflare za miesiąc) |
-| Transkrypcja nagrań | Google Speech-to-Text v2 w UE, [cennik za minutę](https://cloud.google.com/speech-to-text/pricing); nagranie do 20 MiB i 10 minut; plik i wynik usuwa po 30 dniach godzinny przebieg retencji |
-| Odsetek trafień w pamięci wyników | do pomiaru (`scripts/measure_costs.py`) |
+Sprawdzenia idą przez kolejkę DBOS z limitem współbieżności. API liczy limity na IP, kanał i region oraz próg oczekujących sprawdzeń. Ponad limitem odpowiada HTTP 429 z `Retry-After`, a awaria dostawcy kończy się stanem „Problem techniczny”. W żadnym z tych przypadków użytkownik nie dostaje werdyktu. Szacunek kosztu wdrożenia i plan skalowania są w [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing/blob/main/docs/koszty-i-skalowanie.md).
 
-Przy dużym ruchu: sprawdzenia idą przez kolejkę DBOS z limitem współbieżności, API liczy limity na IP, kanał i region (`MERITUM_CHECKS_PER_*_PER_MINUTE`) i próg oczekujących sprawdzeń (`MERITUM_MAX_PENDING_CHECKS`), a ponad limitem odpowiada HTTP 429 z `Retry-After` i komunikatem, nigdy werdyktem. Awaria albo brak klucza dostawcy kończy się stanem „Problem techniczny”, a nie pozornym wynikiem.
+## Praca w repozytoriach
 
-## Klonowanie
+Zasady dla ludzi i agentów AI, od zgłoszenia do scalenia, są w [AGENTS.md](AGENTS.md).
 
-Submoduły używają adresów SSH (`git@github.com:Meritum-HackNation2026/<repo>.git`), więc potrzebujesz klucza SSH dodanego do konta GitHub z dostępem do organizacji.
+### Gałęzie i wdrożenia
+
+W meritum-frontend, meritum-backend i meritum-worker zmiany idą przez PR do `develop`, a wydanie przez PR `develop` → `main`. W pozostałych repozytoriach PR idzie do `main`. Nie pushuj bezpośrednio do `develop` ani `main`: plan Free nie chroni gałęzi w repozytoriach prywatnych, więc pilnujemy tego sami.
+
+Gałąź funkcji usuwaj po scaleniu (`gh pr merge --delete-branch`). Automatyczne usuwanie jest wyłączone, bo po PR `develop` → `main` skasowałoby `develop`.
+
+Każde repozytorium aplikacji ma `.github/workflows/ci.yml`. Lint, typy, testy i build działają na runnerach GCP na każdej gałęzi. Po zielonym CI runner `dellpromaxgb10` wdraża `develop` na dev i `main` na prd, a potem sprawdza kontener przez `/api/v1/health` i zadanie `ping`. Testy wymagające kontaktu między usługami uruchamiamy tylko lokalnie.
+
+### Sekrety i zależności
+
+W każdym repozytorium gitleaks skanuje historię pushowanej gałęzi przy każdym pushu (`.github/workflows/secrets.yml`). Lokalnie ten sam skan blokuje push z sekretem. Włącz go raz po sklonowaniu:
 
 ```bash
-git clone --recurse-submodules git@github.com:Meritum-HackNation2026/meritum-monorepo.git
+brew install gitleaks && scripts/setup-git-hooks.sh
 ```
 
-Jeśli sklonowałeś repozytorium bez submodułów:
+Fałszywy alarm dopisz z uzasadnieniem do `.gitleaks.toml`, zamiast pushować z `--no-verify`.
 
-```bash
-git submodule update --init
-```
+Dependabot otwiera w poniedziałki PR-y z wersjami drobnymi i poprawkowymi, jeden na ekosystem. Wersję meritum-core w backendzie i workerze podbija workflow w core.
 
-## Aktualizacja submodułów
+### Submoduły
 
-Submoduł wskazuje konkretny commit, a nie gałąź. Żeby przesunąć wszystkie submoduły na najnowszy `main` z GitHuba:
-
-```bash
-git submodule update --remote --merge
-git add design-system infra org-profile core backend worker frontend mocks extension marketing docs
-git commit -m "Zaktualizuj submoduły"
-```
-
-To samo robi skrypt, który od razu tworzy commit (albo nic nie robi, gdy wszystko jest aktualne):
+Submoduł wskazuje commit, nie gałąź. Zmiany w kodzie commituj i wypychaj w repozytorium danego submodułu, a tutaj tylko przesunięcie wskaźnika. Wszystkie wskaźniki na najnowszy `main` przesuwa skrypt, który od razu tworzy commit:
 
 ```bash
 ./scripts/update-submodules.sh
 git push
 ```
 
-Zmiany w kodzie commituj i wypychaj w repozytorium danego submodułu. W tym repozytorium commitujesz tylko przesunięcie wskaźnika.
+Po sklonowaniu bez submodułów wystarczy `git submodule update --init`.
