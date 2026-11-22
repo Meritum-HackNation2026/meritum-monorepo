@@ -170,14 +170,23 @@ Lokalnie, na stubach, nic nie opuszcza komputera.
 
 ### Koszty, limity i zachowanie pod obciążeniem (ADR-18)
 
-Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord` (US-OBS-02). Koszt 1 000 zapytań, koszt utrzymania kanałów, koszt i limity transkrypcji oraz odsetek trafień w pamięci wyników podajemy tylko zmierzone naszym skryptem ewaluacji (meritum-worker, `evals/`); do czasu pomiaru zostają z cennikiem dostawcy zamiast liczby:
+Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord` (US-OBS-02). Koszt 1 000 zapytań, koszt utrzymania kanałów, koszt i limity transkrypcji oraz odsetek trafień w pamięci wyników podajemy tylko zmierzone, z datą pomiaru; do czasu pomiaru zostają z cennikiem dostawcy zamiast liczby (pierwszy pomiar: monorepo#30).
+
+Pomiar powtarza ręczny przebieg poza CI (ADR-28): sprawdzenia na prawdziwych dostawcach w dev, eksport ich `CheckRecord` do pliku JSON lines (jeden rekord w wierszu), potem:
+
+```bash
+python scripts/measure_costs.py records.jsonl   # wiersze tabeli z datą, rozbicie wg dostawcy i modelu oraz kanału
+cd worker && uv run meritum-cost ../records.jsonl  # to samo podsumowanie z meritum-worker (worker#26)
+```
+
+Utrzymanie kanałów (WWW, wtyczka, Discord) nie wynika z rekordów sprawdzeń: bierzemy je z rozliczenia projektu GCP i Cloudflare za pełny miesiąc, z datą okresu.
 
 | Pozycja | Wartość |
 |---|---|
-| Koszt 1 000 zapytań (model, embeddingi, bramki, wyszukiwarka) | do pomiaru; składowe: [Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/pricing) i bramki wyżej |
-| Utrzymanie kanałów: WWW, wtyczka, Discord | do pomiaru |
+| Koszt 1 000 zapytań (model, embeddingi, bramki, wyszukiwarka) | do pomiaru (`scripts/measure_costs.py`); składowe: [Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/pricing) i bramki wyżej |
+| Utrzymanie kanałów: WWW, wtyczka, Discord | do pomiaru (rozliczenie GCP i Cloudflare za miesiąc) |
 | Transkrypcja nagrań | Google Speech-to-Text v2 w UE, [cennik za minutę](https://cloud.google.com/speech-to-text/pricing); nagranie do 20 MiB i 10 minut; plik i wynik usuwa po 30 dniach godzinny przebieg retencji |
-| Odsetek trafień w pamięci wyników | do pomiaru |
+| Odsetek trafień w pamięci wyników | do pomiaru (`scripts/measure_costs.py`) |
 
 Przy dużym ruchu: sprawdzenia idą przez kolejkę DBOS z limitem współbieżności, API liczy limity na IP, kanał i region (`MERITUM_CHECKS_PER_*_PER_MINUTE`) i próg oczekujących sprawdzeń (`MERITUM_MAX_PENDING_CHECKS`), a ponad limitem odpowiada HTTP 429 z `Retry-After` i komunikatem, nigdy werdyktem. Awaria albo brak klucza dostawcy kończy się stanem „Problem techniczny”, a nie pozornym wynikiem.
 
