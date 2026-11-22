@@ -129,7 +129,14 @@ Każda zmienna w `.env.example` ma opis. Bez pliku `.env` system startuje na stu
 
 Gdy brakuje klucza, test gotowości wypisuje jego nazwę (nigdy wartości) w logu startu i w `/api/v1/health`, a API odpowiada na pytania stanem „Problem techniczny” zamiast werdyktu (US-BEZ-03, US-WDR-08).
 
-Proces Gateway Discorda (backend/028) dojdzie do compose jako usługa uruchamiana tylko z tokenem bota, gdy powstanie w meritum-backend. Do tego czasu Discord działa przez endpoint interakcji API (`MERITUM_DISCORD_PUBLIC_KEY`).
+### Bot na Discordzie (proces Gateway)
+
+Wzmianki bota na serwerze i wiadomości prywatne obsługuje osobny proces z tego samego obrazu co API (`python -m meritum_backend.discord.gateway`, meritum-backend#39). W compose to usługa `gateway` w profilu `discord`, więc zwykłe `docker compose up` jej nie uruchamia i reszta systemu działa bez tokenu. Żeby ją włączyć:
+
+1. W `.env` ustaw `MERITUM_DISCORD_BOT_TOKEN` (token bota z portalu deweloperskiego Discorda).
+2. Uruchom `docker compose --profile discord up --build`, albo dopisz do `.env` `COMPOSE_PROFILES=discord` i uruchamiaj zwykłe `docker compose up`.
+
+Bez tokenu proces loguje błąd i kończy się kodem 1 (compose ponawia start trzy razy), a API, worker, frontend i makiety działają dalej. Interakcje HTTP (komendy `/sprawdz` i „Sprawdź w Meritum”) idą nadal przez endpoint API (`MERITUM_DISCORD_PUBLIC_KEY`) i od Gateway nie zależą. Konfigurację compose sprawdza lokalnie `scripts/check-compose.sh` (bez kontenerów, poza CI). Gateway potrzebuje backendu z procesem Gateway, czyli submodułu po promocji `develop` → `main` (`scripts/update-submodules.sh`).
 
 ### Test dymny
 
