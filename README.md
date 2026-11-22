@@ -28,11 +28,12 @@ Każdy kanał wysyła to samo zapytanie do jednego API, więc to samo pytanie da
 
 Poza kanałami działa panel personelu: kolejka spraw moderatora, konta, tematy wysokiego ryzyka, eksport dla analityka i strona ewaluacji pod `/panel/eval`.
 
+Strona WWW ma od 22.11.2026 nowy wygląd na prd i dev ([epik #39](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/39)): motyw „Atrament”, belkę ze stopką, stronę główną, stronę sprawdzenia z wynikiem jako listą twierdzeń, „Jak działa” oraz panel personelu i strony prywatności w tym samym układzie. Motyw (jasny, ciemny, ciemny o wysokim kontraście) i rozmiar tekstu zmienia się dwoma przyciskami w belce. Wtyczka i makiety zostają przy dotychczasowym wyglądzie.
+
 Rzeczy w toku:
 
-- Strona WWW zmienia wygląd ([epik #39](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/39)). Nowy motyw, belka ze stopką, strona główna, „Jak działa”, menu „Wygląd” i strona sprawdzenia działają na prd i dev. Pozostałe części epiku są w budowie.
 - SMS przechodzi przez telefon z Androidem i aplikację SMS Gateway for Android ([sms-gate.app](https://docs.sms-gate.app/)). Webhook jest zarejestrowany tylko dla dev, bo oba środowiska dzielą jeden telefon.
-- Kosztu 1 000 zapytań jeszcze nie zmierzyliśmy ([#30](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/30)).
+- Koszt modelu jest zmierzony na małej próbie: 1,18 USD za 1 000 sprawdzeń na 49 zapisach z dev. Kosztu kanałów i odsetka trafień w pamięci wyników na większym ruchu jeszcze nie ma ([#30](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/30)).
 - Środowisko w GCP jest opisane w meritum-infra, ale nie jest wdrożone. Na hackathon wszystko działa na serwerze zespołu.
 
 ## Jak to jest zbudowane
@@ -64,6 +65,14 @@ flowchart LR
 
 API przyjmuje zapytanie, maskuje dane osobowe, liczy limity i zleca sprawdzenie workerowi przez kolejkę DBOS. Postęp i wynik klient czyta po identyfikatorze sprawdzenia albo ze strumienia SSE.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/droga-sprawdzenia-dark.svg">
+    <source media="(prefers-color-scheme: light)" srcset="assets/droga-sprawdzenia-light.svg">
+    <img src="assets/droga-sprawdzenia-light.svg" alt="Schemat jednego sprawdzenia w czterech krokach: pytanie, twierdzenia, trzy wyszukiwania naraz (baza źródeł, świeże publikacje, ustalenia fact-checkerów) i werdykt z cytatem." width="880">
+  </picture>
+</p>
+
 Worker wykonuje sprawdzenie jako jeden workflow. Pobiera stronę z linku albo zamienia nagranie na tekst, szuka w treści ukrytych poleceń i wyodrębnia najwyżej 5 twierdzeń. Dowodów szuka w korpusie, w sieci (tylko w domenach z katalogu źródeł) i wśród ocen fact-checkerów. Potem porównuje źródła z twierdzeniami, odrzuca cytaty, których nie ma dosłownie w tekście źródła, pisze odpowiedź i zapisuje przebieg.
 
 Kontrakty danych, porty, adaptery i reguły werdyktu są w meritum-core, z którego korzystają API i worker. Model językowy, wyszukiwarkę i pozostałych dostawców wybiera konfiguracja.
@@ -83,7 +92,7 @@ Więcej: [sprawdzenie krok po kroku](https://github.com/Meritum-HackNation2026/m
 | `infra/` | [meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra) | runnery CI, platforma na serwerze zespołu, Terraform dla GCP |
 | `design-system/` | [meritum-design-system](https://github.com/Meritum-HackNation2026/meritum-design-system) | dokument produktowy, tokeny, komponenty, teksty interfejsu |
 | `docs/` | [meritum-docs](https://github.com/Meritum-HackNation2026/meritum-docs) | dokumentacja (Zensical, Cloudflare Pages) |
-| `marketing/` | [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing) | deck, film i opis do zgłoszenia konkursowego |
+| `marketing/` | [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing) | prezentacje, film, arkusz kosztów i wyników, opis do zgłoszenia konkursowego |
 | `org-profile/` | [.github](https://github.com/Meritum-HackNation2026/.github) | profil organizacji, formularze zgłoszeń, szablon PR |
 
 Poza profilem organizacji repozytoria są na razie prywatne.
@@ -98,10 +107,12 @@ Poza profilem organizacji repozytoria są na razie prywatne.
 | Konektor MCP | `https://meritum.gburek.app/mcp` | `https://meritum-dev.gburek.app/mcp` |
 | Discord | [zainstaluj „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396) | [zainstaluj „Meritum dev”](https://discord.com/oauth2/authorize?client_id=1573690220782559332) |
 
+Gotowe materiały leżą pod osobnym adresem, [meritum-static.gburek.app](https://meritum-static.gburek.app/): [prezentacja w przeglądarce](https://meritum-static.gburek.app/pitch/) i w [PDF](https://meritum-static.gburek.app/pitch/meritum-own.pdf), [arkusz kosztów i wyników](https://meritum-static.gburek.app/meritum-koszty-i-wyniki.xlsx), [dodatek z pełnym diagramem kontenerów](https://meritum-static.gburek.app/dodatek.html) i trzy wersje filmu ([A](https://meritum-static.gburek.app/film/meritum-film-a.mp4), [B](https://meritum-static.gburek.app/film/meritum-film-b.mp4), [C](https://meritum-static.gburek.app/film/meritum-film-c.mp4)). Ten host ma jedną instancję, bez podziału na dev i prd.
+
 Dev ma tylko frontend, backend i worker. Makiety i wtyczka wychodzą wyłącznie z `main`:
 
 - makiety platform: [X](https://meritum-x.gburek.app), [Facebook](https://meritum-facebook.gburek.app), [Instagram](https://meritum-instagram.gburek.app), [Reddit](https://meritum-reddit.gburek.app), [TikTok](https://meritum-tiktok.gburek.app) i [Discord](https://meritum-discord.gburek.app),
-- wtyczka: paczki dla Chrome, Edge i Firefoksa w [Releases meritum-extension](https://github.com/Meritum-HackNation2026/meritum-extension/releases).
+- wtyczka: paczki dla Chrome, Edge i Firefoksa w [Releases meritum-extension](https://github.com/Meritum-HackNation2026/meritum-extension/releases); paczka `-chrome-dev.zip` łączy się z API dev.
 
 Oba środowiska działają na serwerze zespołu (`dellpromaxgb10`) za tunelem Cloudflare i dzielą jeden kontener PostgreSQL. Każde ma własny schemat `app_<env>` i własną bazę DBOS, a schemat `corpus` jest wspólny i zapisuje do niego tylko worker prd. Worker nie ma publicznego adresu. Układ bazy, ról i kontenerów opisuje [README meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra/blob/main/README.md).
 
@@ -153,7 +164,25 @@ Samą konfigurację compose, bez kontenerów, sprawdza `scripts/check-compose.sh
 
 Wtyczka jest opcjonalna. Pobierz paczkę z [Releases](https://github.com/Meritum-HackNation2026/meritum-extension/releases), rozpakuj ją, w `chrome://extensions` włącz „Tryb dewelopera” i wybierz „Załaduj rozpakowane”. Przycisk „Sprawdź” pojawi się pod postami na makietach platform.
 
-Wyniki ewaluacji są w aplikacji pod `/panel/eval`. Administrator może dać jurorowi dostęp do odczytu [jednorazowym linkiem](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md#jednorazowy-link-jury-32). Zestaw referencyjny można też przeliczyć samemu poleceniem `uv run meritum-eval` z [meritum-worker](https://github.com/Meritum-HackNation2026/meritum-worker/blob/develop/README.md#ewaluacja).
+Prezentacja, film i arkusz z wyliczeniami są pod adresem [meritum-static.gburek.app](https://meritum-static.gburek.app/).
+
+### Wyniki ewaluacji
+
+Ostatni zapisany przebieg benchmarku to 7b z 22.11.2026, na 64 twierdzeniach z oczekiwanymi werdyktami, przez API dev:
+
+| Miernik | Wynik | Cel z zadania |
+|---|---|---|
+| Trafność werdyktu | 53 z 64 (0,83) | |
+| Macro-F1 liczone jak w raporcie | 0,82 | co najmniej 0,75 |
+| Macro-F1 ścisłe, tylko z etykiet, które potok naprawdę zwrócił | 0,65 | |
+| Twierdzenia rozstrzygnięte, które mają cytat | 0,90 | |
+| Cytaty uznane za poprawne przez model-sędziego | 0,83 | |
+| Wstrzymanie się, gdy dowodów nie ma | 1,00 | |
+| Mediana czasu odpowiedzi | 50 s | do 30 s |
+
+Odporności na wstrzyknięte polecenia ten przebieg nie mierzył. Raporty wszystkich przebiegów i opis eksperymentów są w [`evals/reports/`](https://github.com/Meritum-HackNation2026/meritum-worker/tree/develop/evals/reports) w meritum-worker.
+
+Strona ewaluacji w aplikacji jest pod `/panel/eval`. Administrator może dać jurorowi dostęp do odczytu [jednorazowym linkiem](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md#jednorazowy-link-jury-32). Zestaw referencyjny można też przeliczyć samemu poleceniem `uv run meritum-eval` z [meritum-worker](https://github.com/Meritum-HackNation2026/meritum-worker/blob/develop/README.md#ewaluacja).
 
 ### Gdzie przetwarzane są dane
 
@@ -181,7 +210,7 @@ Reranker fragmentów ma trzy adaptery w workerze i domyślnie jest wyłączony. 
 
 ### Koszty i limity
 
-Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord`. Koszt 1 000 zapytań, koszt utrzymania kanałów i odsetek trafień w pamięci wyników podamy dopiero po pomiarze, z datą ([#30](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/30)). Pomiar robi się ręcznie, poza CI:
+Koszt każdego sprawdzenia liczymy z tokenów i wywołań wyszukiwarki zapisanych w `CheckRecord`. Pomiar z 22.11.2026 na 49 zapisach z dev dał 1,18 USD za 1 000 sprawdzeń za sam model i około 0,0013 USD za sprawdzenie na prawdziwym modelu. Próba jest mała i pochodzi z ruchu zespołu, a pamięć wyników nie miała w niej ani jednego trafienia, więc koszt kanałów i odsetek trafień podamy po większym pomiarze ([#30](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/30)). Pomiar robi się ręcznie, poza CI:
 
 ```bash
 python scripts/measure_costs.py records.jsonl      # eksport CheckRecord, jeden rekord w wierszu
@@ -190,7 +219,7 @@ cd worker && uv run meritum-cost ../records.jsonl  # to samo podsumowanie z meri
 
 Nagranie może mieć do 20 MiB i 10 minut. Plik i wynik sprawdzenia są usuwane po 30 dniach.
 
-Sprawdzenia idą przez kolejkę DBOS z limitem współbieżności. API liczy limity na IP, kanał i region oraz próg oczekujących sprawdzeń. Ponad limitem odpowiada HTTP 429 z `Retry-After`, a awaria dostawcy kończy się stanem „Problem techniczny”. W żadnym z tych przypadków użytkownik nie dostaje werdyktu. Szacunek kosztu wdrożenia i plan skalowania są w [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing/blob/main/docs/koszty-i-skalowanie.md).
+Sprawdzenia idą przez kolejkę DBOS z limitem współbieżności. API liczy limity na IP, kanał i region oraz próg oczekujących sprawdzeń. Ponad limitem odpowiada HTTP 429 z `Retry-After`, a awaria dostawcy kończy się stanem „Problem techniczny”. W żadnym z tych przypadków użytkownik nie dostaje werdyktu. Szacunek kosztu wdrożenia i plan skalowania są w [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing/blob/main/docs/koszty-i-skalowanie.md), a dokładne wyliczenia w [arkuszu](https://meritum-static.gburek.app/meritum-koszty-i-wyniki.xlsx).
 
 ## Praca w repozytoriach
 
