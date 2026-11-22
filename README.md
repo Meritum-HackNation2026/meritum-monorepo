@@ -8,8 +8,8 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 
 | Nazwa | Wersja | Przeznaczenie | Link |
 |---|---|---|---|
-| Aplikacja webowa | prd | aplikacja dla obywateli (bootstrap: stan API; docelowo formularz sprawdzania twierdzeń) | [meritum.gburek.app](https://meritum.gburek.app) |
-| Aplikacja webowa | dev | aplikacja dla obywateli (bootstrap: stan API; docelowo formularz sprawdzania twierdzeń) | [meritum-dev.gburek.app](https://meritum-dev.gburek.app) |
+| Aplikacja webowa | prd | formularz sprawdzania twierdzeń | [meritum.gburek.app](https://meritum.gburek.app) |
+| Aplikacja webowa | dev | formularz sprawdzania twierdzeń | [meritum-dev.gburek.app](https://meritum-dev.gburek.app) |
 | API | prd | dokumentacja OpenAPI (Swagger UI) | [meritum.gburek.app/api/docs](https://meritum.gburek.app/api/docs) |
 | API | dev | dokumentacja OpenAPI (Swagger UI) | [meritum-dev.gburek.app/api/docs](https://meritum-dev.gburek.app/api/docs) |
 | API: stan | prd | health: API, baza danych i środowisko | [meritum.gburek.app/api/v1/health](https://meritum.gburek.app/api/v1/health) |
@@ -24,6 +24,7 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 | Makieta Instagram | prd | makieta platformy do demo wtyczki | [meritum-instagram.gburek.app](https://meritum-instagram.gburek.app) |
 | Makieta Reddit | prd | makieta platformy do demo wtyczki | [meritum-reddit.gburek.app](https://meritum-reddit.gburek.app) |
 | Makieta TikTok | prd | makieta platformy do demo wtyczki | [meritum-tiktok.gburek.app](https://meritum-tiktok.gburek.app) |
+| Makieta Discord | prd | rozmowa z Meritum przez formularz w makiecie | [meritum-discord.gburek.app](https://meritum-discord.gburek.app) |
 
 ### Wtyczka Chrome
 
@@ -42,14 +43,16 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 
 ## Nawigacja
 
+Dokumentacja użytkownika i zespołu jest dostępna na [meritum-docs.pages.dev](https://meritum-docs.pages.dev).
+
 | Katalog | Repozytorium | Zawartość |
 |---|---|---|
-| `backend/` | [meritum-backend](https://github.com/Meritum-HackNation2026/meritum-backend) | API w FastAPI; zleca długie operacje workerom przez DBOS |
+| `backend/` | [meritum-backend](https://github.com/Meritum-HackNation2026/meritum-backend) | API w FastAPI, adaptery Discorda, SMS i MCP, zlecanie zadań przez DBOS |
 | `worker/` | [meritum-worker](https://github.com/Meritum-HackNation2026/meritum-worker) | workery DBOS do długich operacji w tle, na PostgreSQL |
 | `core/` | [meritum-core](https://github.com/Meritum-HackNation2026/meritum-core) | kod wspólny backendu i workerów: kontrakty zadań, porty, adaptery |
-| `frontend/` | [meritum-frontend](https://github.com/Meritum-HackNation2026/meritum-frontend) | aplikacja webowa (React, pnpm), serwowana przez nginx, który przekazuje `/api` do backendu |
+| `frontend/` | [meritum-frontend](https://github.com/Meritum-HackNation2026/meritum-frontend) | formularz WWW i panel personelu (React, pnpm), serwowane przez nginx, który przekazuje `/api` do backendu |
 | `extension/` | [meritum-extension](https://github.com/Meritum-HackNation2026/meritum-extension) | wtyczka Chrome MV3 (WXT, React): przycisk „Sprawdź” pod postami |
-| `mocks/` | [meritum-mocks](https://github.com/Meritum-HackNation2026/meritum-mocks) | makiety X, Facebooka, Instagrama, Reddita i TikToka z małym backendem w Hono |
+| `mocks/` | [meritum-mocks](https://github.com/Meritum-HackNation2026/meritum-mocks) | makiety X, Facebooka, Instagrama, Reddita, TikToka i Discorda z backendem w Hono |
 | `marketing/` | [meritum-marketing](https://github.com/Meritum-HackNation2026/meritum-marketing) | deck, film i grafiki na konkurs MSZ |
 | `design-system/` | [meritum-design-system](https://github.com/Meritum-HackNation2026/meritum-design-system) | dokument produktowy, kontrakty domenowe, system projektowy, teksty, źródłowe makiety platform |
 | `docs/` | [meritum-docs](https://github.com/Meritum-HackNation2026/meritum-docs) | dokumentacja aplikacji (Zensical, Cloudflare Pages) |
@@ -59,14 +62,30 @@ Repozytorium zbiorcze projektu Meritum, obywatelskiego radaru dezinformacji (Hac
 
 ## Infrastruktura środowisk
 
-| Środowisko | Gałąź | Kontenery na dellpromaxgb10 | Schematy w bazie `meritum` |
-|---|---|---|---|
-| dev | `develop` (frontend, backend, worker) | `meritum-web-dev`, `meritum-api-dev`, `meritum-worker-dev` | `api_dev`, `worker_dev` |
-| prd | `main` | `meritum-web-prd`, `meritum-api-prd`, `meritum-worker-prd`, `meritum-mocks-prd` | `api_prd`, `worker_prd`, `mocks_prd` |
+| Środowisko | Gałąź | Kontenery na dellpromaxgb10 | Schematy w bazie `meritum` | Baza z tabelami w schemacie `dbos` |
+|---|---|---|---|---|
+| dev | `develop` (frontend, backend, worker) | `meritum-web-dev`, `meritum-api-dev`, `meritum-worker-dev` | `app_dev` | `meritum_dbos_dev` |
+| prd | `main` | `meritum-web-prd`, `meritum-api-prd`, `meritum-worker-prd`, `meritum-mocks-prd` | `app_prd`, `mocks_prd` | `meritum_dbos_prd` |
 
 Kontener `meritum-mocks-dev` i schemat `mocks_dev` zostały po dawnym przepływie makiet i nie dostają nowych wersji.
 
-Wszystkie środowiska dzielą jeden kontener PostgreSQL (`meritum-postgres`, pgvector i pg_trgm). Każda aplikacja w każdym środowisku ma własną rolę, która widzi tylko swój schemat. Schemat workera trzyma też tabele systemowe DBOS, a rola API ma do nich dostęp, żeby zlecać zadania. Szczegóły w README meritum-infra.
+Oba środowiska dzielą kontener PostgreSQL (`meritum-postgres`, pgvector i pg_trgm). W każdym środowisku API i worker korzystają ze wspólnego schematu `app_<env>`. Rola `meritum_worker_<env>` jest jego właścicielem i wykonuje migracje. Rola `meritum_api_<env>` czyta i zapisuje dane bez uprawnień do zmiany struktury tabel. Worker zarządza też bazą DBOS swojego środowiska i nadaje API dostęp potrzebny do kolejkowania zadań. `worker_dev` i `worker_prd` to nazwy schematów z poprzedniego układu.
+
+Schemat `corpus` w bazie `meritum` jest wspólny. Tylko `meritum_worker_prd` zapisuje dane i wykonuje migracje. API obu środowisk i worker dev mają dostęp do odczytu. Szczegóły opisuje [README meritum-infra](https://github.com/Meritum-HackNation2026/meritum-infra/blob/main/README.md).
+
+## Kanały sprawdzania
+
+Formularz WWW, wtyczka Chrome, Discord, SMS i MCP korzystają ze wspólnego procesu sprawdzania w API i workerze. Discord przyjmuje komendę `/sprawdz` i akcję z menu wiadomości. Osobny proces Gateway przyjmuje też wzmianki i wiadomości prywatne. SMS trafia do API przez webhook bramki, obecnie zarejestrowany tylko dla dev. Konfigurację kanałów opisuje [README backendu](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md).
+
+### Konektor MCP
+
+Konektor działa pod `https://meritum-dev.gburek.app/mcp` (dev) i `https://meritum.gburek.app/mcp` (prd). Używa transportu Streamable HTTP i wymaga klucza API albo tokenu OAuth. Narzędzie `check_claim` sprawdza twierdzenie, a `search_sources` przeszukuje katalog źródeł. Sposób podłączenia klienta opisuje [sekcja MCP w README backendu](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md#konektor-mcp).
+
+### Ewaluacja
+
+W repozytorium workera polecenie `uv run meritum-eval` uruchamia sprawdzanie na zestawie referencyjnym. Opcja `--cases` przyjmuje własny plik JSON lub CSV. Raport obejmuje m.in. trafność werdyktów, pokrycie cytatami, zgodność wyników między kanałami oraz czas i koszt sprawdzeń. Pełne przebiegi wykonuje się poza CI. Szczegóły są w [README workera](https://github.com/Meritum-HackNation2026/meritum-worker/blob/develop/README.md#ewaluacja).
+
+W aplikacji wyniki ewaluacji są w panelu pod `/panel/eval`. Administrator może nadać jurorowi dostęp do odczytu przez [jednorazowy link](https://github.com/Meritum-HackNation2026/meritum-backend/blob/develop/README.md#jednorazowy-link-jury-32).
 
 ## CI/CD
 
@@ -103,7 +122,7 @@ Są dwie ścieżki. Żadna nie wymaga pomocy zespołu.
 
 - Formularz WWW: [meritum.gburek.app](https://meritum.gburek.app). Wklej tekst albo link i kliknij „Sprawdź”.
 - Discord: [zainstaluj „Meritum”](https://discord.com/oauth2/authorize?client_id=1573692006398693396), potem `/sprawdz` albo „Sprawdź w Meritum” w menu wiadomości.
-- Makieta Discorda (mocks/001, [meritum-mocks#12](https://github.com/Meritum-HackNation2026/meritum-mocks/issues/12), główna ścieżka obok formularza): adres pojawi się w tabeli makiet wyżej, gdy makieta będzie wdrożona.
+- Makieta Discorda: otwórz [meritum-discord.gburek.app](https://meritum-discord.gburek.app) i wyślij twierdzenie z formularza, bez konta Discord.
 - Wtyczka Chrome (opcjonalnie, poniżej 2 minut): pobierz artefakt `meritum-extension-prd` z [ostatniego przebiegu CI na `main`](https://github.com/Meritum-HackNation2026/meritum-extension/actions/workflows/ci.yml?query=branch%3Amain+is%3Asuccess), rozpakuj, otwórz `chrome://extensions`, włącz „Tryb dewelopera”, kliknij „Załaduj rozpakowane” i wskaż katalog. Przycisk „Sprawdź” pojawi się pod postami na makietach platform.
 
 ### Lokalnie jednym poleceniem
@@ -121,9 +140,9 @@ docker compose up --build
 | http://localhost:8080 | aplikacja webowa z formularzem (nginx przekazuje `/api` do API) |
 | http://localhost:8080/api/docs | dokumentacja API |
 | http://localhost:8080/api/v1/health | test gotowości: baza, worker, brakujące zmienne |
-| http://localhost:3000 | makiety platform (`/x/`, `/facebook/`, `/instagram/`, `/reddit/`, `/tiktok/`) |
+| http://localhost:3000 | makiety platform (`/x/`, `/facebook/`, `/instagram/`, `/reddit/`, `/tiktok/`, `/discord/`) |
 
-`docker-compose.yml` buduje te same obrazy co dev i prd: PostgreSQL z obrazu meritum-infra (pgvector i polski słownik), worker DBOS, API, frontend i makiety. API i worker dzielą wolumen `files` na nagrania i obrazy (adapter systemu plików `BlobStore`, ADR-31). Lokalnie jedna rola bazy robi wszystko; na serwerze każda aplikacja i środowisko ma własną rolę i schemat.
+`docker-compose.yml` uruchamia PostgreSQL z obrazu meritum-infra (pgvector i polski słownik), workera DBOS, API, frontend i makiety. API i worker dzielą wolumen `files` na nagrania i obrazy (adapter systemu plików `BlobStore`, ADR-31). Lokalny Compose używa jednej bazy i jednej roli, z tabelami DBOS w schemacie `worker_local`.
 
 Każda zmienna w `.env.example` ma opis. Bez pliku `.env` system startuje na stubach z lokalną, jawną solą `MERITUM_CHANNEL_HASH_SALT` (poza własnym komputerem ustaw własną): model językowy odpowiada z `config/llm-stub.json`, a embeddingi i transkrypcja też są stubami. Prawdziwy model to `MERITUM_LLM_PROVIDER=vertex` z modelem, regionem UE i projektem Google Cloud oraz Application Default Credentials w kontenerze workera.
 
