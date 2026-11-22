@@ -30,7 +30,7 @@ Poza kanałami działa panel personelu: kolejka spraw moderatora, konta, tematy 
 
 Rzeczy w toku:
 
-- Strona WWW zmienia wygląd ([epik #39](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/39)). Na `develop` frontendu są już nowy motyw i nowa belka ze stopką, więc widać je na dev. Strona główna, „Jak działa”, menu „Wygląd” i strona sprawdzenia są w budowie. Prd pokazuje poprzedni wygląd.
+- Strona WWW zmienia wygląd ([epik #39](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/39)). Nowy motyw, belka ze stopką, strona główna, „Jak działa”, menu „Wygląd” i strona sprawdzenia działają na prd i dev. Pozostałe części epiku są w budowie.
 - SMS przechodzi przez telefon z Androidem i aplikację SMS Gateway for Android ([sms-gate.app](https://docs.sms-gate.app/)). Webhook jest zarejestrowany tylko dla dev, bo oba środowiska dzielą jeden telefon.
 - Kosztu 1 000 zapytań jeszcze nie zmierzyliśmy ([#30](https://github.com/Meritum-HackNation2026/meritum-monorepo/issues/30)).
 - Środowisko w GCP jest opisane w meritum-infra, ale nie jest wdrożone. Na hackathon wszystko działa na serwerze zespołu.
